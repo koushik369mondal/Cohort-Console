@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cohort Console — Student Coding Profiles</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='75' font-family='monospace' font-weight='bold' fill='%234fd8c4' text-anchor='middle'%3E%26lt;/%26gt;%3C/text%3E%3C/svg%3E">
+
+    <!-- Fonts: Space Grotesk (display), Inter (body), JetBrains Mono (data / code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ============ HEADER / NAVBAR ============ -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="brand">
+                <span class="brand-mark">&lt;/&gt;</span>
+                <div class="brand-text">
+                    <span class="brand-name">Cohort Console</span>
+                    <span class="brand-prompt"><span class="prompt-symbol">$</span> whoami --cohort BCSS ·
+                        2023–27</span>
+                </div>
+            </div>
+
+            <div class="header-controls">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="grep name or enrollment id…" autocomplete="off"
+                        aria-label="Search students by name or enrollment ID" />
+                </div>
+
+                <div class="select-wrap">
+                    <i class="fa-solid fa-arrow-down-a-z select-icon"></i>
+                    <select id="sortSelect" aria-label="Sort students">
+                        <option value="default">Default order</option>
+                        <option value="az">Name · A → Z</option>
+                        <option value="za">Name · Z → A</option>
+                        <option value="id">Enrollment ID</option>
+                    </select>
+                </div>
+
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle light and dark mode"
+                    title="Toggle theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============ STATS STRIP ============ -->
+    <section class="stats-strip">
+        <div class="stats-inner">
+            <div class="stat-item">
+                <span class="stat-value" id="statTotal">0</span>
+                <span class="stat-label">profiles indexed</span>
+            </div>
+            <div class="stat-divider" aria-hidden="true"></div>
+            <div class="stat-item">
+                <span class="stat-value" id="statShowing">0</span>
+                <span class="stat-label">currently showing</span>
+            </div>
+            <div class="stat-divider" aria-hidden="true"></div>
+            <div class="stat-item terminal-line" aria-hidden="true">
+                <span class="prompt-symbol">$</span>
+                <span id="statusLine">ls ./students --all</span>
+                <span class="cursor-blink">▍</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ MAIN GRID ============ -->
+    <main class="main-content">
+        <div id="cardGrid" class="card-grid" aria-live="polite">
+            <!-- Cards injected by script.js -->
+        </div>
+
+        <div id="emptyState" class="empty-state" hidden>
+            <i class="fa-solid fa-terminal"></i>
+            <p><span class="prompt-symbol">$</span> grep: no results found for “<span id="emptyQuery"></span>”</p>
+            <span class="empty-sub">Try a different name or enrollment ID.</span>
+        </div>
+
+        <div id="loadingState" class="loading-state">
+            <div class="spinner" aria-hidden="true"></div>
+            <p><span class="prompt-symbol">$</span> fetching students.json …</p>
+        </div>
+    </main>
+
+    <!-- ============ MODAL ============ -->
+    <div id="modalOverlay" class="modal-overlay" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalName">
+            <button id="modalClose" class="modal-close" aria-label="Close profile">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="modal-header">
+                <div id="modalAvatar" class="avatar avatar-lg" aria-hidden="true"></div>
+                <div>
+                    <h2 id="modalName" class="modal-name"></h2>
+                    <p id="modalId" class="modal-id"></p>
+                </div>
+            </div>
+
+            <dl class="modal-details">
+                <div class="detail-row">
+                    <dt><i class="fa-solid fa-envelope"></i> Email</dt>
+                    <dd id="modalEmail"></dd>
+                </div>
+                <div class="detail-row">
+                    <dt><i class="fa-solid fa-phone"></i> Phone</dt>
+                    <dd id="modalPhone"></dd>
+                </div>
+                <div class="detail-row">
+                    <dt><i class="fa-solid fa-cake-candles"></i> Date of Birth</dt>
+                    <dd id="modalDob"></dd>
+                </div>
+            </dl>
+
+            <div class="modal-actions">
+                <a id="modalLeetcode" class="btn btn-leetcode" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-solid fa-code"></i> LeetCode Profile
+                </a>
+                <a id="modalGithub" class="btn btn-github" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-brands fa-github"></i> GitHub Profile
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span><span class="prompt-symbol">$</span> exit</span>
+            <span class="footer-note">Cohort Console — B.Tech CSE, 2023–27 · Data loaded dynamically from
+                <code>students.json</code></span>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
