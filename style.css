@@ -280,6 +280,47 @@ ol {
     transform: rotate(15deg);
 }
 
+.btn-tracker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    background: linear-gradient(135deg, rgba(245, 185, 66, 0.15), rgba(79, 216, 196, 0.15));
+    color: var(--accent-amber);
+    border: 1px solid color-mix(in srgb, var(--accent-amber) 40%, transparent);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-tracker:hover {
+    background: var(--accent-amber);
+    color: var(--bg);
+    border-color: var(--accent-amber);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-amber) 40%, transparent);
+}
+
+.btn-tracker i:first-child {
+    font-size: 0.9rem;
+}
+
+.btn-tracker .external-icon {
+    font-size: 0.72rem;
+    opacity: 0.75;
+    transition: transform var(--transition), opacity var(--transition);
+}
+
+.btn-tracker:hover .external-icon {
+    transform: translate(2px, -2px);
+    opacity: 1;
+}
+
 /* ==========================================================================
    STATS STRIP
    ========================================================================== */
@@ -793,6 +834,12 @@ ol {
 
     .header-controls {
         width: 100%;
+    }
+
+    .btn-tracker {
+        width: 100%;
+        justify-content: center;
+        order: -1;
     }
 
     #searchInput,
