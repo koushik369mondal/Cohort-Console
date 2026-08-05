@@ -553,6 +553,21 @@ body {
     margin-top: 0.1rem;
 }
 
+.dev-dob {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.dev-dob i {
+    font-size: 0.68rem;
+    color: var(--amber);
+}
+
 .rank-badge {
     padding: 0.25rem 0.65rem;
     border-radius: var(--radius-full);

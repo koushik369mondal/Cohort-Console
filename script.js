@@ -55,6 +55,7 @@
     const modalMediumBar = document.getElementById("modalMediumBar");
     const modalHardBar = document.getElementById("modalHardBar");
     const modalId = document.getElementById("modalId");
+    const modalDob = document.getElementById("modalDob");
     const modalEmail = document.getElementById("modalEmail");
     const modalPhone = document.getElementById("modalPhone");
     const modalLeetCodeLink = document.getElementById("modalLeetCodeLink");
@@ -189,6 +190,7 @@
                 student,
                 username,
                 name: student.name || username,
+                dob: student.dob || "N/A",
                 avatar: profile.userAvatar || student.avatar || "",
                 ranking: profile.ranking || Infinity,
                 reputation: profile.reputation || 0,
@@ -215,6 +217,7 @@
             student,
             username,
             name: student.name || username,
+            dob: student.dob || "N/A",
             avatar: student.avatar || "",
             ranking: Infinity,
             reputation: 0,
@@ -245,6 +248,7 @@
                     <div style="flex:1;">
                         <div class="skeleton-box skeleton-title"></div>
                         <div class="skeleton-box skeleton-subtitle"></div>
+                        <div class="skeleton-box skeleton-subtitle" style="width:70px; margin-top:4px;"></div>
                     </div>
                     <div class="skeleton-box skeleton-badge"></div>
                 </div>
@@ -269,7 +273,8 @@
                 const nameMatch = item.name.toLowerCase().includes(q);
                 const userMatch = item.username.toLowerCase().includes(q);
                 const idMatch = (item.student.id || "").toLowerCase().includes(q);
-                return nameMatch || userMatch || idMatch;
+                const dobMatch = (item.dob || "").toLowerCase().includes(q);
+                return nameMatch || userMatch || idMatch || dobMatch;
             });
         }
 
@@ -343,6 +348,7 @@
                     <div class="dev-identity">
                         <div class="dev-name">${escapeHtml(data.name)}</div>
                         <div class="dev-username">@${escapeHtml(data.username)}</div>
+                        <div class="dev-dob" title="Date of Birth"><i class="fa-solid fa-cake-candles"></i> ${escapeHtml(data.dob)}</div>
                     </div>
                     <span class="rank-badge" style="background:rgba(239,68,68,0.12); color:var(--hard-color); border-color:rgba(239,68,68,0.3)">Error</span>
                 </div>
@@ -380,6 +386,7 @@
                 <div class="dev-identity">
                     <div class="dev-name" title="${escapeHtml(data.name)}">${escapeHtml(data.name)}</div>
                     <div class="dev-username">@${escapeHtml(data.username)}</div>
+                    <div class="dev-dob" title="Date of Birth"><i class="fa-solid fa-cake-candles"></i> ${escapeHtml(data.dob)}</div>
                 </div>
                 <span class="rank-badge" title="LeetCode Global Ranking">${rankFormatted}</span>
             </div>
@@ -536,6 +543,7 @@
         modalHardBar.style.width = `${Math.min((data.hardSolved / 150) * 100, 100)}%`;
 
         modalId.textContent = data.student.id || "N/A";
+        if (modalDob) modalDob.textContent = data.dob || "N/A";
         modalEmail.textContent = data.student.email || "N/A";
         modalPhone.textContent = data.student.phoneNumber || "N/A";
 
