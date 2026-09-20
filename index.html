@@ -350,6 +350,18 @@
                             </div>
                         </div>
                         <div id="heatmapTooltip" class="heatmap-tooltip" hidden></div>
+                        <div id="heatmapDayPopup" class="heatmap-day-popup" hidden>
+                            <div class="popup-header">
+                                <div class="popup-title-wrap">
+                                    <span class="popup-date" id="popupDate">--</span>
+                                    <span class="popup-count-badge" id="popupCount">0 Submissions</span>
+                                </div>
+                                <button type="button" class="popup-close-btn" id="popupCloseBtn" aria-label="Close popup">&times;</button>
+                            </div>
+                            <div class="popup-body" id="popupBody">
+                                <!-- Dynamically filled with problem submissions for the selected date -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 

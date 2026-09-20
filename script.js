@@ -77,6 +77,13 @@
     const modalActiveYears = document.getElementById("modalActiveYears");
     const modalCalendarHeatmap = document.getElementById("modalCalendarHeatmap");
     const heatmapTooltip = document.getElementById("heatmapTooltip");
+    const heatmapDayPopup = document.getElementById("heatmapDayPopup");
+    const popupDate = document.getElementById("popupDate");
+    const popupCount = document.getElementById("popupCount");
+    const popupCloseBtn = document.getElementById("popupCloseBtn");
+    const popupBody = document.getElementById("popupBody");
+    let activeHeatmapCell = null;
+    const problemDifficultyCache = new Map();
 
     // Contests DOM
     const contestsContent = document.getElementById("contestsContent");
@@ -697,6 +704,7 @@
         document.body.style.overflow = "";
         currentModalStudent = null;
         if (heatmapTooltip) heatmapTooltip.hidden = true;
+        closeDayPopup();
     }
 
     /**
@@ -750,17 +758,191 @@
     }
 
     function populateDetailSections(details, username) {
-        renderCalendarHeatmap(details.calendar);
+        renderCalendarHeatmap(details.calendar, details.submissions);
         renderContestSection(details.contests);
         renderSubmissionsSection(details.submissions);
         renderSkillsAndBadges(details.skills, details.badges);
     }
 
+    async function fetchProblemDifficulty(titleSlug) {
+        if (!titleSlug) return null;
+        if (problemDifficultyCache.has(titleSlug)) return problemDifficultyCache.get(titleSlug);
+        try {
+            const res = await fetch(`https://leetcode-api-pied.vercel.app/problem/${encodeURIComponent(titleSlug)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.difficulty) {
+                    problemDifficultyCache.set(titleSlug, data.difficulty);
+                    return data.difficulty;
+                }
+            }
+        } catch (e) {
+            // ignore network issues
+        }
+        return null;
+    }
+
+    function closeDayPopup() {
+        if (heatmapDayPopup) {
+            heatmapDayPopup.hidden = true;
+            heatmapDayPopup.setAttribute("hidden", "");
+        }
+        if (activeHeatmapCell) {
+            activeHeatmapCell.classList.remove("active-cell");
+            activeHeatmapCell = null;
+        }
+    }
+
+    function openDayPopup(cell, dateKey, dateObj, count, daySubmissions) {
+        if (!heatmapDayPopup) return;
+
+        if (heatmapTooltip) heatmapTooltip.hidden = true;
+
+        if (activeHeatmapCell === cell && !heatmapDayPopup.hidden) {
+            closeDayPopup();
+            return;
+        }
+
+        if (activeHeatmapCell) {
+            activeHeatmapCell.classList.remove("active-cell");
+        }
+        activeHeatmapCell = cell;
+        cell.classList.add("active-cell");
+
+        const formattedDate = dateObj.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            timeZone: "UTC"
+        });
+
+        if (popupDate) popupDate.textContent = formattedDate;
+        if (popupCount) popupCount.textContent = `${count} ${count === 1 ? "Submission" : "Submissions"}`;
+
+        if (!popupBody) return;
+        popupBody.innerHTML = "";
+
+        if (count === 0) {
+            popupBody.innerHTML = `
+                <div class="popup-empty-day">
+                    <i class="fa-regular fa-calendar-xmark"></i>
+                    <span>No submissions recorded on this date.</span>
+                </div>
+            `;
+        } else if (daySubmissions.length > 0) {
+            daySubmissions.forEach(sub => {
+                const item = document.createElement("div");
+                item.className = "popup-problem-item";
+
+                const probUrl = sub.titleSlug ? `https://leetcode.com/problems/${encodeURIComponent(sub.titleSlug)}/` : "#";
+                const probTitle = escapeHtml(sub.title || sub.titleSlug || "Problem");
+
+                const status = sub.statusDisplay || "Submitted";
+                let statusClass = "other";
+                let statusIcon = '<i class="fa-solid fa-circle-question"></i>';
+
+                if (status === "Accepted") {
+                    statusClass = "accepted";
+                    statusIcon = '<i class="fa-solid fa-check"></i>';
+                } else if (status === "Wrong Answer") {
+                    statusClass = "wrong-answer";
+                    statusIcon = '<i class="fa-solid fa-xmark"></i>';
+                } else if (status.includes("Time Limit")) {
+                    statusClass = "tle";
+                    statusIcon = '<i class="fa-solid fa-clock"></i>';
+                } else if (status.includes("Compile")) {
+                    statusClass = "wrong-answer";
+                    statusIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                }
+
+                const cachedDiff = sub.titleSlug ? problemDifficultyCache.get(sub.titleSlug) : null;
+                const diffText = cachedDiff || sub.difficulty || "--";
+                const diffClass = (diffText || "").toLowerCase();
+
+                const lang = sub.langName || sub.lang || "";
+
+                item.innerHTML = `
+                    <div class="popup-problem-top">
+                        <a href="${probUrl}" target="_blank" rel="noopener noreferrer" class="popup-problem-name" title="Open on LeetCode">
+                            ${probTitle} <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                    <div class="popup-problem-meta">
+                        <span class="popup-diff-badge ${diffClass}" data-slug="${escapeHtml(sub.titleSlug || "")}">${diffText}</span>
+                        <span class="popup-status-badge ${statusClass}">${statusIcon} ${escapeHtml(status)}</span>
+                        ${lang ? `<span class="popup-lang-badge"><i class="fa-solid fa-code"></i> ${escapeHtml(lang)}</span>` : ""}
+                    </div>
+                `;
+
+                if (!cachedDiff && sub.titleSlug) {
+                    fetchProblemDifficulty(sub.titleSlug).then(diff => {
+                        if (diff) {
+                            const badge = item.querySelector(`.popup-diff-badge[data-slug="${sub.titleSlug}"]`);
+                            if (badge) {
+                                badge.textContent = diff;
+                                badge.className = `popup-diff-badge ${diff.toLowerCase()}`;
+                            }
+                        }
+                    });
+                }
+
+                popupBody.appendChild(item);
+            });
+
+            if (count > daySubmissions.length) {
+                const note = document.createElement("div");
+                note.className = "popup-archive-note";
+                note.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${count} total submissions recorded on this date in LeetCode calendar. (${daySubmissions.length} detailed record${daySubmissions.length > 1 ? "s" : ""} from recent activity).`;
+                popupBody.appendChild(note);
+            }
+        } else {
+            popupBody.innerHTML = `
+                <div class="popup-problem-item">
+                    <div class="popup-problem-top">
+                        <span class="popup-problem-name"><i class="fa-solid fa-code-commit" style="color:var(--cyan)"></i> Activity Recorded</span>
+                    </div>
+                    <div class="popup-archive-note">
+                        <strong>${count} submission${count > 1 ? "s" : ""} logged</strong> on this date in LeetCode calendar. Detailed problem titles for submissions beyond the 20 most recent are archived on LeetCode.
+                    </div>
+                </div>
+            `;
+        }
+
+        heatmapDayPopup.hidden = false;
+        heatmapDayPopup.removeAttribute("hidden");
+
+        const card = modalCalendarHeatmap.closest(".calendar-section-card");
+        if (!card) return;
+
+        const cellRect = cell.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const popupRect = heatmapDayPopup.getBoundingClientRect();
+
+        const popupWidth = popupRect.width || 330;
+        const popupHeight = popupRect.height || 180;
+
+        // Horizontally center over the cell, clamped within the card
+        let left = (cellRect.left - cardRect.left) + (cellRect.width / 2) - (popupWidth / 2);
+        left = Math.max(10, Math.min(left, cardRect.width - popupWidth - 10));
+
+        // Vertically position: default to right below the cell
+        let top = (cellRect.bottom - cardRect.top) + 8;
+        // If placing below exceeds available room or if placing above has ample room (at least 15px margin from card top)
+        if ((cellRect.top - cardRect.top) - popupHeight - 10 > 15) {
+            top = (cellRect.top - cardRect.top) - popupHeight - 8;
+        }
+
+        heatmapDayPopup.style.left = `${left}px`;
+        heatmapDayPopup.style.top = `${top}px`;
+    }
+
     /**
      * 1. Calendar Heatmap and Streak Activity (Full 1-Year GitHub Style)
      */
-    function renderCalendarHeatmap(calendarData) {
+    function renderCalendarHeatmap(calendarData, submissionsData) {
         if (!modalCalendarHeatmap) return;
+        closeDayPopup();
 
         const streakVal = calendarData?.streak != null ? calendarData.streak : 0;
         const activeDaysVal = calendarData?.totalActiveDays != null ? calendarData.totalActiveDays : 0;
@@ -769,6 +951,30 @@
         if (modalStreak) modalStreak.textContent = streakVal;
         if (modalActiveDays) modalActiveDays.textContent = activeDaysVal;
         if (modalActiveYears) modalActiveYears.textContent = activeYearsVal;
+
+        // Group submissions by UTC YYYY-MM-DD
+        const submissionsByDate = new Map();
+        if (Array.isArray(submissionsData)) {
+            submissionsData.forEach(sub => {
+                if (sub.titleSlug && !problemDifficultyCache.has(sub.titleSlug)) {
+                    fetchProblemDifficulty(sub.titleSlug);
+                }
+                if (sub.timestamp) {
+                    const sec = parseInt(sub.timestamp, 10);
+                    if (!isNaN(sec)) {
+                        const d = new Date(sec * 1000);
+                        const year = d.getUTCFullYear();
+                        const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+                        const day = String(d.getUTCDate()).padStart(2, "0");
+                        const key = `${year}-${month}-${day}`;
+                        if (!submissionsByDate.has(key)) {
+                            submissionsByDate.set(key, []);
+                        }
+                        submissionsByDate.get(key).push(sub);
+                    }
+                }
+            });
+        }
 
         // Parse calendar timestamps into UTC YYYY-MM-DD map
         const submissionMap = new Map();
@@ -903,9 +1109,10 @@
                     cell.className = `heatmap-cell ${level}`;
                     cell.dataset.date = currentIter.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
                     cell.dataset.count = count;
+                    cell.dataset.dateKey = dateKey;
 
                     cell.addEventListener("mouseenter", (e) => {
-                        if (heatmapTooltip) {
+                        if (heatmapTooltip && (!activeHeatmapCell || activeHeatmapCell !== cell)) {
                             const target = e.target;
                             const rect = target.getBoundingClientRect();
                             const card = modalCalendarHeatmap.closest(".calendar-section-card") || modalCalendarHeatmap.parentElement;
@@ -919,6 +1126,12 @@
 
                     cell.addEventListener("mouseleave", () => {
                         if (heatmapTooltip) heatmapTooltip.hidden = true;
+                    });
+
+                    const iterDateSnapshot = new Date(currentIter.getTime());
+                    cell.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        openDayPopup(cell, dateKey, iterDateSnapshot, count, submissionsByDate.get(dateKey) || []);
                     });
                 }
 
@@ -1189,6 +1402,7 @@
                 btn.classList.add("active");
                 const pane = document.getElementById(`pane-${targetTab}`);
                 if (pane) pane.classList.add("active");
+                closeDayPopup();
 
                 if (targetTab === "activity") {
                     const scrollContainer = modalCalendarHeatmap?.closest(".heatmap-scroll-container");
@@ -1295,10 +1509,32 @@
             }
         });
 
+        // Heatmap Day Popup Close Listeners
+        if (popupCloseBtn) {
+            popupCloseBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                closeDayPopup();
+            });
+        }
+
+        document.addEventListener("click", (e) => {
+            if (heatmapDayPopup && !heatmapDayPopup.hidden) {
+                if (!heatmapDayPopup.contains(e.target) && !e.target.closest(".heatmap-cell")) {
+                    closeDayPopup();
+                }
+            }
+        });
+
         // Keyboard Shortcuts
         document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && !profileModal.hidden) {
-                closeProfileModal();
+            if (e.key === "Escape") {
+                if (heatmapDayPopup && !heatmapDayPopup.hidden) {
+                    closeDayPopup();
+                    return;
+                }
+                if (!profileModal.hidden) {
+                    closeProfileModal();
+                }
             }
             if (e.key === "/" && document.activeElement !== searchInput && profileModal.hidden) {
                 e.preventDefault();
