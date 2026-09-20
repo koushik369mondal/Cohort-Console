@@ -45,9 +45,14 @@
     const modalUsername = document.getElementById("modalUsername");
     const modalAvatar = document.getElementById("modalAvatar");
     const modalRankPill = document.getElementById("modalRankPill");
+    const modalCountryPill = document.getElementById("modalCountryPill");
+    const modalCountry = document.getElementById("modalCountry");
+    const modalSchoolPill = document.getElementById("modalSchoolPill");
+    const modalSchool = document.getElementById("modalSchool");
+    const modalBio = document.getElementById("modalBio");
     const modalTotalSolved = document.getElementById("modalTotalSolved");
     const modalAcceptanceRate = document.getElementById("modalAcceptanceRate");
-    const modalReputation = document.getElementById("modalReputation");
+    const modalTotalSubmissionsCount = document.getElementById("modalTotalSubmissionsCount");
     const modalEasyCount = document.getElementById("modalEasyCount");
     const modalMediumCount = document.getElementById("modalMediumCount");
     const modalHardCount = document.getElementById("modalHardCount");
@@ -61,6 +66,43 @@
     const modalLeetCodeLink = document.getElementById("modalLeetCodeLink");
     const modalGitHubLink = document.getElementById("modalGitHubLink");
 
+    // Modal Tabs & Panes
+    const modalTabBtns = document.querySelectorAll(".modal-tab-btn");
+    const modalPanes = document.querySelectorAll(".modal-pane");
+    const modalSyncIndicator = document.getElementById("modalSyncIndicator");
+
+    // Activity & Heatmap DOM
+    const modalStreak = document.getElementById("modalStreak");
+    const modalActiveDays = document.getElementById("modalActiveDays");
+    const modalActiveYears = document.getElementById("modalActiveYears");
+    const modalCalendarHeatmap = document.getElementById("modalCalendarHeatmap");
+    const heatmapTooltip = document.getElementById("heatmapTooltip");
+
+    // Contests DOM
+    const contestsContent = document.getElementById("contestsContent");
+    const contestsEmptyState = document.getElementById("contestsEmptyState");
+    const modalContestRating = document.getElementById("modalContestRating");
+    const modalContestRanking = document.getElementById("modalContestRanking");
+    const modalContestAttended = document.getElementById("modalContestAttended");
+    const modalContestTopPct = document.getElementById("modalContestTopPct");
+    const modalContestChart = document.getElementById("modalContestChart");
+    const contestHistoryTbody = document.getElementById("contestHistoryTbody");
+
+    // Submissions DOM
+    const modalSubmissionsCount = document.getElementById("modalSubmissionsCount");
+    const submissionsTbody = document.getElementById("submissionsTbody");
+
+    // Skills & Badges DOM
+    const modalBadgesCount = document.getElementById("modalBadgesCount");
+    const modalBadgesGrid = document.getElementById("modalBadgesGrid");
+    const modalAdvancedSkills = document.getElementById("modalAdvancedSkills");
+    const modalIntermediateSkills = document.getElementById("modalIntermediateSkills");
+    const modalFundamentalSkills = document.getElementById("modalFundamentalSkills");
+
+    // Cache & Detail State
+    const detailCache = new Map();
+    let currentModalStudent = null;
+
     // Filter Buttons
     const tabBtns = document.querySelectorAll(".tab-btn");
 
@@ -70,6 +112,7 @@
 
     async function init() {
         setupEventListeners();
+        setupModalTabs();
         renderSkeletons(12);
         await loadDashboardData();
     }
@@ -194,10 +237,16 @@
                 avatar: profile.userAvatar || student.avatar || "",
                 ranking: profile.ranking || Infinity,
                 reputation: profile.reputation || 0,
+                country: profile.countryName || "",
+                school: profile.school || "",
+                bio: profile.aboutMe || "",
+                solutionCount: profile.solutionCount || 0,
+                postViewCount: profile.postViewCount || 0,
                 totalSolved,
                 easySolved,
                 mediumSolved,
                 hardSolved,
+                totalSubmissions,
                 acceptanceRate,
                 githubUrl: student.githubUrl || student.githubLink || "#",
                 leetcodeProfile: student.leetcodeProfile || `https://leetcode.com/u/${username}/`,
@@ -221,10 +270,16 @@
             avatar: student.avatar || "",
             ranking: Infinity,
             reputation: 0,
+            country: "",
+            school: "",
+            bio: "",
+            solutionCount: 0,
+            postViewCount: 0,
             totalSolved: 0,
             easySolved: 0,
             mediumSolved: 0,
             hardSolved: 0,
+            totalSubmissions: 0,
             acceptanceRate: "N/A",
             githubUrl: student.githubUrl || student.githubLink || "#",
             leetcodeProfile: student.leetcodeProfile || `https://leetcode.com/u/${username}/`,
@@ -513,35 +568,62 @@
     }
 
     // ==========================================================================
-    // MODAL PROFILE LOGIC
+    // MODAL PROFILE LOGIC & ENRICHED DATA (LEETCODE 6 DETAILED ENDPOINTS)
     // ==========================================================================
 
-    function openProfileModal(data) {
+    const LEETCODE_DETAIL_BASE = "https://leetcode-api-pied.vercel.app/user/";
+
+    async function openProfileModal(data) {
+        currentModalStudent = data;
         const initials = getInitials(data.name);
 
+        // Header Identity
         modalStudentName.textContent = data.name;
         modalUsername.textContent = `@${data.username}`;
         modalRankPill.textContent = data.ranking !== Infinity ? `#${data.ranking.toLocaleString()}` : "Unranked";
-        
+
+        if (data.country) {
+            modalCountry.textContent = data.country;
+            modalCountryPill.hidden = false;
+        } else {
+            modalCountryPill.hidden = true;
+        }
+
+        if (data.school) {
+            modalSchool.textContent = data.school;
+            modalSchoolPill.hidden = false;
+        } else {
+            modalSchoolPill.hidden = true;
+        }
+
+        if (data.bio && data.bio.trim()) {
+            modalBio.textContent = `“${data.bio.trim()}”`;
+            modalBio.hidden = false;
+        } else {
+            modalBio.hidden = true;
+        }
+
         if (data.avatar) {
             modalAvatar.innerHTML = `<img src="${escapeHtml(data.avatar)}" alt="${escapeHtml(data.name)}" onerror="this.outerHTML='${initials}'" />`;
         } else {
             modalAvatar.textContent = initials;
         }
 
+        // Problem Breakdown
         modalTotalSolved.textContent = data.totalSolved;
         modalAcceptanceRate.textContent = data.acceptanceRate;
-        modalReputation.textContent = data.reputation;
+        modalTotalSubmissionsCount.textContent = Number(data.totalSubmissions || 0).toLocaleString();
 
         modalEasyCount.textContent = data.easySolved;
         modalMediumCount.textContent = data.mediumSolved;
         modalHardCount.textContent = data.hardSolved;
 
-        // Progress bar widths (max estimate for visual fullness)
+        // Progress bar widths
         modalEasyBar.style.width = `${Math.min((data.easySolved / 400) * 100, 100)}%`;
         modalMediumBar.style.width = `${Math.min((data.mediumSolved / 400) * 100, 100)}%`;
         modalHardBar.style.width = `${Math.min((data.hardSolved / 150) * 100, 100)}%`;
 
+        // Metadata from students.json
         modalId.textContent = data.student.id || "N/A";
         if (modalDob) modalDob.textContent = data.dob || "N/A";
         modalEmail.textContent = data.student.email || "N/A";
@@ -550,13 +632,436 @@
         modalLeetCodeLink.href = data.leetcodeProfile;
         modalGitHubLink.href = data.githubUrl;
 
+        // Reset to Overview tab
+        modalTabBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === "overview"));
+        modalPanes.forEach(pane => pane.classList.toggle("active", pane.id === "pane-overview"));
+
+        // Open modal backdrop
         profileModal.hidden = false;
         document.body.style.overflow = "hidden"; // Lock background scroll
+
+        // Fetch or load from cache the detailed endpoints
+        await loadStudentDetailedData(data.username);
     }
 
     function closeProfileModal() {
         profileModal.hidden = true;
         document.body.style.overflow = "";
+        currentModalStudent = null;
+        if (heatmapTooltip) heatmapTooltip.hidden = true;
+    }
+
+    /**
+     * Fetches detailed data across the detailed endpoints using Promise.allSettled
+     * and caches the result by username.
+     */
+    async function loadStudentDetailedData(username) {
+        if (!username || username === "unknown") return;
+
+        // 1. Check in-memory cache
+        if (detailCache.has(username)) {
+            const cached = detailCache.get(username);
+            populateDetailSections(cached, username);
+            return;
+        }
+
+        // Show live sync indicator
+        if (modalSyncIndicator) modalSyncIndicator.hidden = false;
+
+        const endpoints = ["contests", "submissions", "calendar", "badges", "skills"];
+        const promises = endpoints.map(ep =>
+            fetch(`${LEETCODE_DETAIL_BASE}${encodeURIComponent(username)}/${ep}`, {
+                signal: AbortSignal.timeout(12000)
+            })
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+        );
+
+        const results = await Promise.allSettled(promises);
+
+        const detailData = {
+            contests: results[0].status === "fulfilled" ? results[0].value : null,
+            submissions: results[1].status === "fulfilled" ? results[1].value : null,
+            calendar: results[2].status === "fulfilled" ? results[2].value : null,
+            badges: results[3].status === "fulfilled" ? results[3].value : null,
+            skills: results[4].status === "fulfilled" ? results[4].value : null
+        };
+
+        // Cache result
+        detailCache.set(username, detailData);
+
+        if (modalSyncIndicator) modalSyncIndicator.hidden = true;
+
+        // Populate detail panes if the user hasn't switched to another student
+        if (currentModalStudent && currentModalStudent.username === username) {
+            populateDetailSections(detailData, username);
+        }
+    }
+
+    function populateDetailSections(details, username) {
+        renderCalendarHeatmap(details.calendar);
+        renderContestSection(details.contests);
+        renderSubmissionsSection(details.submissions);
+        renderSkillsAndBadges(details.skills, details.badges);
+    }
+
+    /**
+     * 1. Calendar Heatmap and Streak Activity
+     */
+    function renderCalendarHeatmap(calendarData) {
+        if (!modalCalendarHeatmap) return;
+
+        const streakVal = calendarData?.streak != null ? calendarData.streak : 0;
+        const activeDaysVal = calendarData?.totalActiveDays != null ? calendarData.totalActiveDays : 0;
+        const activeYearsVal = calendarData?.activeYears?.length ? calendarData.activeYears.join(", ") : "N/A";
+
+        if (modalStreak) modalStreak.textContent = streakVal;
+        if (modalActiveDays) modalActiveDays.textContent = activeDaysVal;
+        if (modalActiveYears) modalActiveYears.textContent = activeYearsVal;
+
+        // Parse calendar timestamps
+        const submissionMap = new Map();
+        if (calendarData?.submissionCalendar) {
+            const rawCal = typeof calendarData.submissionCalendar === "string" 
+                ? JSON.parse(calendarData.submissionCalendar) 
+                : calendarData.submissionCalendar;
+
+            Object.entries(rawCal).forEach(([ts, count]) => {
+                const sec = parseInt(ts, 10);
+                if (!isNaN(sec)) {
+                    const d = new Date(sec * 1000);
+                    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                    submissionMap.set(key, (submissionMap.get(key) || 0) + Number(count));
+                }
+            });
+        }
+
+        // Generate the last 26 weeks (182 days) ending today
+        modalCalendarHeatmap.innerHTML = "";
+        const today = new Date();
+        const numWeeks = 28;
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - (numWeeks * 7));
+
+        // Align to Sunday
+        startDate.setDate(startDate.getDate() - startDate.getDay());
+
+        const currentIter = new Date(startDate);
+        for (let w = 0; w < numWeeks; w++) {
+            const weekCol = document.createElement("div");
+            weekCol.className = "heatmap-week";
+
+            for (let d = 0; d < 7; d++) {
+                const dateKey = `${currentIter.getUTCFullYear()}-${String(currentIter.getUTCMonth() + 1).padStart(2, '0')}-${String(currentIter.getUTCDate()).padStart(2, '0')}`;
+                const count = submissionMap.get(dateKey) || 0;
+
+                let level = "lvl-0";
+                if (count >= 10) level = "lvl-4";
+                else if (count >= 6) level = "lvl-3";
+                else if (count >= 3) level = "lvl-2";
+                else if (count >= 1) level = "lvl-1";
+
+                const cell = document.createElement("div");
+                cell.className = `heatmap-cell ${level}`;
+                cell.dataset.date = currentIter.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                cell.dataset.count = count;
+
+                cell.addEventListener("mouseenter", (e) => {
+                    if (heatmapTooltip) {
+                        const target = e.target;
+                        const rect = target.getBoundingClientRect();
+                        const parentRect = modalCalendarHeatmap.parentElement.getBoundingClientRect();
+                        heatmapTooltip.textContent = `${target.dataset.count} submissions on ${target.dataset.date}`;
+                        heatmapTooltip.style.left = `${rect.left - parentRect.left + (rect.width / 2)}px`;
+                        heatmapTooltip.style.top = `${rect.top - parentRect.top - 8}px`;
+                        heatmapTooltip.hidden = false;
+                    }
+                });
+
+                cell.addEventListener("mouseleave", () => {
+                    if (heatmapTooltip) heatmapTooltip.hidden = true;
+                });
+
+                weekCol.appendChild(cell);
+                currentIter.setDate(currentIter.getDate() + 1);
+            }
+            modalCalendarHeatmap.appendChild(weekCol);
+        }
+    }
+
+    /**
+     * 2. Contest Performance and Rating History Chart
+     */
+    function renderContestSection(contestData) {
+        if (!contestsContent || !contestsEmptyState) return;
+
+        const ranking = contestData?.userContestRanking;
+        const history = contestData?.userContestRankingHistory || [];
+        const attendedContests = history.filter(h => h.attended && h.rating > 0);
+
+        if (ranking && ranking.attendedContestsCount > 0) {
+            contestsContent.hidden = false;
+            contestsEmptyState.hidden = true;
+
+            modalContestRating.textContent = Math.round(ranking.rating || 0);
+            modalContestRanking.textContent = ranking.globalRanking ? `#${ranking.globalRanking.toLocaleString()}` : "Unranked";
+            modalContestAttended.textContent = ranking.attendedContestsCount;
+            modalContestTopPct.textContent = ranking.topPercentage != null ? `${ranking.topPercentage}%` : "--";
+
+            // Render SVG Trend Chart
+            renderContestSvgChart(attendedContests);
+
+            // Render History Table (newest first)
+            renderContestHistoryTable(attendedContests);
+        } else {
+            contestsContent.hidden = true;
+            contestsEmptyState.hidden = false;
+        }
+    }
+
+    function renderContestSvgChart(attended) {
+        if (!modalContestChart) return;
+        modalContestChart.innerHTML = "";
+
+        if (!attended || attended.length < 2) {
+            modalContestChart.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:0.85rem;">
+                    <i class="fa-solid fa-chart-line" style="margin-right:0.5rem"></i> Need at least 2 attended contests to draw rating history chart.
+                </div>
+            `;
+            return;
+        }
+
+        const ratings = attended.map(a => a.rating);
+        const minRating = Math.floor(Math.min(...ratings) - 40);
+        const maxRating = Math.ceil(Math.max(...ratings) + 40);
+        const ratingRange = Math.max(maxRating - minRating, 1);
+
+        const width = 600;
+        const height = 150;
+        const padding = 20;
+
+        const points = attended.map((item, idx) => {
+            const x = padding + (idx / (attended.length - 1)) * (width - padding * 2);
+            const y = height - padding - ((item.rating - minRating) / ratingRange) * (height - padding * 2);
+            return { x, y, rating: Math.round(item.rating), title: item.contest?.title || `Contest #${idx + 1}` };
+        });
+
+        const pointsString = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+        const firstPoint = points[0];
+        const lastPoint = points[points.length - 1];
+        const areaPath = `M ${firstPoint.x.toFixed(1)},${(height - padding)} L ${points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ")} L ${lastPoint.x.toFixed(1)},${(height - padding)} Z`;
+
+        const svgHtml = `
+            <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" style="width:100%; height:100%;">
+                <defs>
+                    <linearGradient id="contestGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+                    </linearGradient>
+                </defs>
+                <!-- Baseline Guideline -->
+                <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
+                <line x1="${padding}" y1="${padding}" x2="${width - padding}" y2="${padding}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4" />
+                <!-- Area Fill -->
+                <path d="${areaPath}" fill="url(#contestGradient)" />
+                <!-- Polyline -->
+                <polyline points="${pointsString}" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <!-- Points -->
+                ${points.map(p => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#0e1424" stroke="#38bdf8" stroke-width="2"><title>${p.title}: ${p.rating}</title></circle>`).join("")}
+            </svg>
+        `;
+        modalContestChart.innerHTML = svgHtml;
+    }
+
+    function renderContestHistoryTable(attended) {
+        if (!contestHistoryTbody) return;
+        contestHistoryTbody.innerHTML = "";
+
+        const sorted = [...attended].reverse().slice(0, 15);
+        if (sorted.length === 0) {
+            contestHistoryTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No contests attended.</td></tr>`;
+            return;
+        }
+
+        sorted.forEach(item => {
+            const tr = document.createElement("tr");
+            const dateStr = item.contest?.startTime ? new Date(item.contest.startTime * 1000).toLocaleDateString() : "--";
+            const trendIcon = item.trendDirection === "UP" 
+                ? '<i class="fa-solid fa-arrow-trend-up" style="color:var(--easy-color); margin-left:0.3rem"></i>'
+                : item.trendDirection === "DOWN"
+                ? '<i class="fa-solid fa-arrow-trend-down" style="color:var(--hard-color); margin-left:0.3rem"></i>'
+                : "";
+
+            tr.innerHTML = `
+                <td style="font-weight:500; color:var(--text-primary)">${escapeHtml(item.contest?.title || "Contest")}</td>
+                <td>${dateStr}</td>
+                <td>#${item.ranking ? item.ranking.toLocaleString() : "--"}</td>
+                <td style="font-family:var(--font-mono); font-weight:600; color:var(--cyan)">${Math.round(item.rating || 0)}${trendIcon}</td>
+                <td><span style="color:var(--easy-color); font-weight:600">${item.problemsSolved ?? 0}</span> / ${item.totalProblems ?? 4}</td>
+            `;
+            contestHistoryTbody.appendChild(tr);
+        });
+    }
+
+    /**
+     * 3. Recent Submissions
+     */
+    function renderSubmissionsSection(submissionsData) {
+        if (!submissionsTbody) return;
+        submissionsTbody.innerHTML = "";
+
+        if (Array.isArray(submissionsData) && submissionsData.length > 0) {
+            modalSubmissionsCount.textContent = `${submissionsData.length} Submissions`;
+
+            submissionsData.forEach(sub => {
+                const tr = document.createElement("tr");
+                const status = sub.statusDisplay || "Submitted";
+                let statusBadgeClass = "other";
+                let statusIcon = '<i class="fa-solid fa-circle-question"></i>';
+
+                if (status === "Accepted") {
+                    statusBadgeClass = "accepted";
+                    statusIcon = '<i class="fa-solid fa-check"></i>';
+                } else if (status === "Wrong Answer") {
+                    statusBadgeClass = "wrong-answer";
+                    statusIcon = '<i class="fa-solid fa-xmark"></i>';
+                } else if (status.includes("Time Limit")) {
+                    statusBadgeClass = "tle";
+                    statusIcon = '<i class="fa-solid fa-clock"></i>';
+                } else if (status.includes("Compile")) {
+                    statusBadgeClass = "wrong-answer";
+                    statusIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                }
+
+                const probUrl = sub.titleSlug ? `https://leetcode.com/problems/${encodeURIComponent(sub.titleSlug)}/` : "#";
+                const dateStr = sub.timestamp ? formatRelativeTime(sub.timestamp) : "--";
+
+                tr.innerHTML = `
+                    <td>
+                        <a href="${probUrl}" target="_blank" rel="noopener noreferrer" class="prob-link">
+                            ${escapeHtml(sub.title || sub.titleSlug || "Problem")}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="status-badge ${statusBadgeClass}">
+                            ${statusIcon} ${escapeHtml(status)}
+                        </span>
+                    </td>
+                    <td><span class="lang-badge">${escapeHtml(sub.langName || sub.lang || "Code")}</span></td>
+                    <td style="font-family:var(--font-mono); font-size:0.8rem">${escapeHtml(sub.runtime || "--")}</td>
+                    <td style="font-family:var(--font-mono); font-size:0.8rem">${escapeHtml(sub.memory || "--")}</td>
+                    <td style="font-size:0.76rem; color:var(--text-muted)">${dateStr}</td>
+                `;
+                submissionsTbody.appendChild(tr);
+            });
+        } else {
+            modalSubmissionsCount.textContent = "0 Submissions";
+            submissionsTbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                        No recent submissions available for this user.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    /**
+     * 4. Skills Breakdown & Badges
+     */
+    function renderSkillsAndBadges(skillsData, badgesData) {
+        // Badges
+        if (modalBadgesGrid) {
+            modalBadgesGrid.innerHTML = "";
+            const badgesList = badgesData?.badges || [];
+            if (modalBadgesCount) modalBadgesCount.textContent = badgesList.length;
+
+            if (badgesList.length === 0) {
+                modalBadgesGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0;">
+                        No earned LeetCode badges recorded for this developer yet.
+                    </div>
+                `;
+            } else {
+                badgesList.forEach(b => {
+                    const card = document.createElement("div");
+                    card.className = "badge-item-card";
+                    let iconUrl = b.icon || "";
+                    if (iconUrl.startsWith("/")) {
+                        iconUrl = `https://leetcode.com${iconUrl}`;
+                    }
+
+                    const dateStr = b.creationDate ? new Date(b.creationDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : "";
+
+                    card.innerHTML = `
+                        <img src="${escapeHtml(iconUrl)}" alt="${escapeHtml(b.displayName || b.name)}" class="badge-img" onerror="this.outerHTML='<i class=\\'fa-solid fa-award\\' style=\\'font-size:2rem; color:var(--amber); margin:0.5rem 0;\\'></i>'" />
+                        <span class="badge-name">${escapeHtml(b.displayName || b.name)}</span>
+                        ${dateStr ? `<span class="badge-date">${dateStr}</span>` : ""}
+                    `;
+                    modalBadgesGrid.appendChild(card);
+                });
+            }
+        }
+
+        // Skills (Advanced, Intermediate, Fundamental)
+        renderSkillTags(modalAdvancedSkills, skillsData?.advanced);
+        renderSkillTags(modalIntermediateSkills, skillsData?.intermediate);
+        renderSkillTags(modalFundamentalSkills, skillsData?.fundamental);
+    }
+
+    function renderSkillTags(container, list) {
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (!list || list.length === 0) {
+            container.innerHTML = `<span style="color:var(--text-muted); font-size:0.8rem; font-style:italic">No tagged problems in this category</span>`;
+            return;
+        }
+
+        list.forEach(skill => {
+            const span = document.createElement("span");
+            span.className = "skill-tag";
+            span.innerHTML = `
+                ${escapeHtml(skill.tagName)}
+                <span class="solved-badge">${skill.problemsSolved}</span>
+            `;
+            container.appendChild(span);
+        });
+    }
+
+    function setupModalTabs() {
+        modalTabBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+                const targetTab = btn.dataset.tab;
+                modalTabBtns.forEach(b => b.classList.remove("active"));
+                modalPanes.forEach(p => p.classList.remove("active"));
+
+                btn.classList.add("active");
+                const pane = document.getElementById(`pane-${targetTab}`);
+                if (pane) pane.classList.add("active");
+            });
+        });
+    }
+
+    function formatRelativeTime(timestamp) {
+        const sec = parseInt(timestamp, 10);
+        if (isNaN(sec)) return "";
+        const diffMs = Date.now() - (sec * 1000);
+        const diffSec = Math.floor(diffMs / 1000);
+
+        if (diffSec < 60) return "Just now";
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `${diffMin}m ago`;
+        const diffHours = Math.floor(diffMin / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays < 30) return `${diffDays}d ago`;
+        const diffMonths = Math.floor(diffDays / 30);
+        if (diffMonths < 12) return `${diffMonths}mo ago`;
+        return `${Math.floor(diffMonths / 12)}y ago`;
     }
 
     // ==========================================================================
@@ -607,6 +1112,7 @@
         // Refresh Button
         refreshBtn.addEventListener("click", async () => {
             refreshIcon.classList.add("spinning");
+            detailCache.clear(); // Invalidate detail cache on explicit sync
             await loadDashboardData();
             setTimeout(() => refreshIcon.classList.remove("spinning"), 600);
         });
@@ -622,7 +1128,7 @@
             if (e.key === "Escape" && !profileModal.hidden) {
                 closeProfileModal();
             }
-            if (e.key === "/" && document.activeElement !== searchInput) {
+            if (e.key === "/" && document.activeElement !== searchInput && profileModal.hidden) {
                 e.preventDefault();
                 searchInput.focus();
             }

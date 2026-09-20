@@ -158,108 +158,319 @@
 
     <!-- ============ DEVELOPER DETAIL MODAL ============ -->
     <div id="profileModal" class="modal-backdrop" hidden>
-        <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modalStudentName">
+        <div class="modal-container modal-container-wide" role="dialog" aria-modal="true" aria-labelledby="modalStudentName">
             <button id="closeModalBtn" class="modal-close-btn" aria-label="Close modal">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
-            <div class="modal-body">
-                <!-- Header Info -->
+            <!-- Modal Header / Identity -->
+            <div class="modal-header-section">
                 <div class="modal-profile-header">
                     <div id="modalAvatar" class="modal-avatar"></div>
                     <div class="modal-profile-title">
-                        <div class="modal-rank-pill" id="modalRankPill">#--</div>
+                        <div class="modal-title-badges">
+                            <span class="modal-rank-pill" id="modalRankPill">#--</span>
+                            <span class="modal-meta-pill" id="modalCountryPill" hidden>
+                                <i class="fa-solid fa-earth-americas"></i> <span id="modalCountry">--</span>
+                            </span>
+                            <span class="modal-meta-pill school-pill" id="modalSchoolPill" hidden>
+                                <i class="fa-solid fa-graduation-cap"></i> <span id="modalSchool">--</span>
+                            </span>
+                            <span class="modal-live-sync" id="modalSyncIndicator" hidden>
+                                <span class="sync-spinner"></span> Syncing live stats...
+                            </span>
+                        </div>
                         <h2 id="modalStudentName">Student Name</h2>
                         <p class="modal-username" id="modalUsername">@username</p>
+                        <p class="modal-bio" id="modalBio" hidden></p>
                     </div>
                 </div>
 
-                <!-- Metrics Grid in Modal -->
-                <div class="modal-stats-grid">
-                    <div class="modal-stat-box">
-                        <span class="modal-stat-num" id="modalTotalSolved">0</span>
-                        <span class="modal-stat-lbl">Total Solved</span>
+                <div class="modal-header-actions">
+                    <div class="modal-quick-links">
+                        <a id="modalLeetCodeLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-external leetcode">
+                            <i class="fa-solid fa-code"></i> LeetCode Profile
+                        </a>
+                        <a id="modalGitHubLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-external github">
+                            <i class="fa-brands fa-github"></i> GitHub Profile
+                        </a>
                     </div>
-                    <div class="modal-stat-box">
-                        <span class="modal-stat-num" id="modalAcceptanceRate">0%</span>
-                        <span class="modal-stat-lbl">Acceptance Rate</span>
-                    </div>
-                    <div class="modal-stat-box">
-                        <span class="modal-stat-num" id="modalReputation">0</span>
-                        <span class="modal-stat-lbl">Reputation</span>
+                </div>
+            </div>
+
+            <!-- Modal Nav Tabs -->
+            <div class="modal-tabs-bar">
+                <button class="modal-tab-btn active" data-tab="overview">
+                    <i class="fa-solid fa-chart-pie"></i> Overview &amp; Stats
+                </button>
+                <button class="modal-tab-btn" data-tab="activity">
+                    <i class="fa-solid fa-calendar-days"></i> Activity &amp; Heatmap
+                </button>
+                <button class="modal-tab-btn" data-tab="contests">
+                    <i class="fa-solid fa-trophy"></i> Contests
+                </button>
+                <button class="modal-tab-btn" data-tab="submissions">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Submissions
+                </button>
+                <button class="modal-tab-btn" data-tab="skills">
+                    <i class="fa-solid fa-tags"></i> Skills &amp; Badges
+                </button>
+            </div>
+
+            <!-- Modal Tab Content Panes -->
+            <div class="modal-body-tabbed">
+
+                <!-- 1. OVERVIEW PANE -->
+                <div class="modal-pane active" id="pane-overview">
+                    <div class="overview-layout">
+                        <div class="overview-left">
+                            <div class="modal-stats-grid">
+                                <div class="modal-stat-box">
+                                    <span class="modal-stat-num" id="modalTotalSolved">0</span>
+                                    <span class="modal-stat-lbl">Total Solved</span>
+                                </div>
+                                <div class="modal-stat-box">
+                                    <span class="modal-stat-num" id="modalAcceptanceRate">0%</span>
+                                    <span class="modal-stat-lbl">Acceptance Rate</span>
+                                </div>
+                                <div class="modal-stat-box">
+                                    <span class="modal-stat-num" id="modalTotalSubmissionsCount">0</span>
+                                    <span class="modal-stat-lbl">Total Submissions</span>
+                                </div>
+                            </div>
+
+                            <div class="modal-progress-section">
+                                <h4>Problem Solving Breakdown</h4>
+
+                                <div class="progress-item">
+                                    <div class="progress-info">
+                                        <span class="diff-tag easy"><i class="fa-solid fa-circle"></i> Easy</span>
+                                        <span class="progress-count" id="modalEasyCount">0</span>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class="progress-bar easy" id="modalEasyBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="progress-item">
+                                    <div class="progress-info">
+                                        <span class="diff-tag medium"><i class="fa-solid fa-circle"></i> Medium</span>
+                                        <span class="progress-count" id="modalMediumCount">0</span>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class="progress-bar medium" id="modalMediumBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="progress-item">
+                                    <div class="progress-info">
+                                        <span class="diff-tag hard"><i class="fa-solid fa-circle"></i> Hard</span>
+                                        <span class="progress-count" id="modalHardCount">0</span>
+                                    </div>
+                                    <div class="progress-track">
+                                        <div class="progress-bar hard" id="modalHardBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overview-right">
+                            <div class="student-info-card">
+                                <h5><i class="fa-solid fa-id-badge"></i> Academic &amp; Contact Records</h5>
+                                <div class="modal-info-list">
+                                    <div class="modal-info-item">
+                                        <i class="fa-solid fa-id-card"></i>
+                                        <span class="label">Student ID:</span>
+                                        <span class="value" id="modalId">--</span>
+                                    </div>
+                                    <div class="modal-info-item">
+                                        <i class="fa-solid fa-cake-candles"></i>
+                                        <span class="label">Date of Birth:</span>
+                                        <span class="value" id="modalDob">--</span>
+                                    </div>
+                                    <div class="modal-info-item">
+                                        <i class="fa-solid fa-envelope"></i>
+                                        <span class="label">Email:</span>
+                                        <span class="value" id="modalEmail">--</span>
+                                    </div>
+                                    <div class="modal-info-item">
+                                        <i class="fa-solid fa-phone"></i>
+                                        <span class="label">Phone:</span>
+                                        <span class="value" id="modalPhone">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Difficulty Progress Bars -->
-                <div class="modal-progress-section">
-                    <h4>Problem Solving Breakdown</h4>
-
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="diff-tag easy">Easy</span>
-                            <span class="progress-count" id="modalEasyCount">0</span>
+                <!-- 2. ACTIVITY & CALENDAR PANE -->
+                <div class="modal-pane" id="pane-activity">
+                    <div class="activity-stats-row">
+                        <div class="activity-metric-card">
+                            <i class="fa-solid fa-fire-flame-curved flame-icon"></i>
+                            <div>
+                                <span class="num" id="modalStreak">0</span>
+                                <span class="lbl">Current Streak</span>
+                            </div>
                         </div>
-                        <div class="progress-track">
-                            <div class="progress-bar easy" id="modalEasyBar" style="width: 0%"></div>
+                        <div class="activity-metric-card">
+                            <i class="fa-solid fa-calendar-check calendar-icon"></i>
+                            <div>
+                                <span class="num" id="modalActiveDays">0</span>
+                                <span class="lbl">Total Active Days</span>
+                            </div>
+                        </div>
+                        <div class="activity-metric-card">
+                            <i class="fa-solid fa-timeline years-icon"></i>
+                            <div>
+                                <span class="num" id="modalActiveYears">--</span>
+                                <span class="lbl">Active Years</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="diff-tag medium">Medium</span>
-                            <span class="progress-count" id="modalMediumCount">0</span>
+                    <div class="calendar-section-card">
+                        <div class="section-card-header">
+                            <h4><i class="fa-solid fa-chart-simple"></i> Submissions Activity Heatmap</h4>
+                            <span class="calendar-legend">
+                                Less
+                                <span class="heat-box lvl-0"></span>
+                                <span class="heat-box lvl-1"></span>
+                                <span class="heat-box lvl-2"></span>
+                                <span class="heat-box lvl-3"></span>
+                                <span class="heat-box lvl-4"></span>
+                                More
+                            </span>
                         </div>
-                        <div class="progress-track">
-                            <div class="progress-bar medium" id="modalMediumBar" style="width: 0%"></div>
+                        <div class="heatmap-scroll-container">
+                            <div class="heatmap-grid" id="modalCalendarHeatmap">
+                                <!-- Dynamically generated calendar grid -->
+                            </div>
+                        </div>
+                        <div id="heatmapTooltip" class="heatmap-tooltip" hidden></div>
+                    </div>
+                </div>
+
+                <!-- 3. CONTESTS PANE -->
+                <div class="modal-pane" id="pane-contests">
+                    <div id="contestsContent">
+                        <div class="contests-summary-grid">
+                            <div class="contest-stat-card">
+                                <span class="c-label">Contest Rating</span>
+                                <span class="c-val highlight" id="modalContestRating">--</span>
+                            </div>
+                            <div class="contest-stat-card">
+                                <span class="c-label">Global Contest Rank</span>
+                                <span class="c-val" id="modalContestRanking">--</span>
+                            </div>
+                            <div class="contest-stat-card">
+                                <span class="c-label">Contests Attended</span>
+                                <span class="c-val" id="modalContestAttended">--</span>
+                            </div>
+                            <div class="contest-stat-card">
+                                <span class="c-label">Top Percentage</span>
+                                <span class="c-val" id="modalContestTopPct">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Rating Trend Chart -->
+                        <div class="contest-chart-card" id="contestChartWrapper">
+                            <h4><i class="fa-solid fa-chart-line"></i> Contest Rating History</h4>
+                            <div class="chart-container" id="modalContestChart">
+                                <!-- SVG Chart rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Contest History Table -->
+                        <div class="contest-history-card">
+                            <h4>Contest Participation History</h4>
+                            <div class="table-responsive">
+                                <table class="custom-table" id="contestHistoryTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Contest</th>
+                                            <th>Date</th>
+                                            <th>Rank</th>
+                                            <th>Rating</th>
+                                            <th>Solved</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contestHistoryTbody">
+                                        <!-- Dynamically generated rows -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="diff-tag hard">Hard</span>
-                            <span class="progress-count" id="modalHardCount">0</span>
+                    <div id="contestsEmptyState" class="pane-empty-state" hidden>
+                        <i class="fa-solid fa-trophy"></i>
+                        <h4>No Contest Participation Recorded</h4>
+                        <p>This developer has not yet participated in rated LeetCode weekly or biweekly contests.</p>
+                    </div>
+                </div>
+
+                <!-- 4. RECENT SUBMISSIONS PANE -->
+                <div class="modal-pane" id="pane-submissions">
+                    <div class="submissions-wrapper">
+                        <div class="section-card-header">
+                            <h4><i class="fa-solid fa-list-check"></i> Latest Problem Submissions</h4>
+                            <span class="sub-counter" id="modalSubmissionsCount">0 Submissions</span>
                         </div>
-                        <div class="progress-track">
-                            <div class="progress-bar hard" id="modalHardBar" style="width: 0%"></div>
+                        <div class="table-responsive">
+                            <table class="custom-table" id="submissionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Problem</th>
+                                        <th>Status</th>
+                                        <th>Language</th>
+                                        <th>Runtime</th>
+                                        <th>Memory</th>
+                                        <th>Submitted</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="submissionsTbody">
+                                    <!-- Dynamically populated -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Metadata List -->
-                <div class="modal-info-list">
-                    <div class="modal-info-item">
-                        <i class="fa-solid fa-id-card"></i>
-                        <span class="label">ID:</span>
-                        <span class="value" id="modalId">--</span>
-                    </div>
-                    <div class="modal-info-item">
-                        <i class="fa-solid fa-cake-candles"></i>
-                        <span class="label">DOB:</span>
-                        <span class="value" id="modalDob">--</span>
-                    </div>
-                    <div class="modal-info-item">
-                        <i class="fa-solid fa-envelope"></i>
-                        <span class="label">Email:</span>
-                        <span class="value" id="modalEmail">--</span>
-                    </div>
-                    <div class="modal-info-item">
-                        <i class="fa-solid fa-phone"></i>
-                        <span class="label">Phone:</span>
-                        <span class="value" id="modalPhone">--</span>
+                <!-- 5. SKILLS & BADGES PANE -->
+                <div class="modal-pane" id="pane-skills">
+                    <div class="skills-badges-layout">
+                        <!-- Badges Section -->
+                        <div class="badges-section-card">
+                            <h4><i class="fa-solid fa-shield-halved"></i> Earned Badges (<span id="modalBadgesCount">0</span>)</h4>
+                            <div class="badges-grid" id="modalBadgesGrid">
+                                <!-- Badges dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- Skills Section -->
+                        <div class="skills-section-card">
+                            <h4><i class="fa-solid fa-layer-group"></i> Mastered Skills &amp; Topics</h4>
+                            
+                            <div class="skill-category">
+                                <h5 class="tier-label advanced"><i class="fa-solid fa-gem"></i> Advanced Topics</h5>
+                                <div class="skills-tag-cloud" id="modalAdvancedSkills"></div>
+                            </div>
+
+                            <div class="skill-category">
+                                <h5 class="tier-label intermediate"><i class="fa-solid fa-bolt"></i> Intermediate Topics</h5>
+                                <div class="skills-tag-cloud" id="modalIntermediateSkills"></div>
+                            </div>
+
+                            <div class="skill-category">
+                                <h5 class="tier-label fundamental"><i class="fa-solid fa-cube"></i> Fundamental Topics</h5>
+                                <div class="skills-tag-cloud" id="modalFundamentalSkills"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- External Links -->
-                <div class="modal-actions">
-                    <a id="modalLeetCodeLink" href="#" target="_blank" rel="noopener noreferrer"
-                        class="btn-external leetcode">
-                        <i class="fa-solid fa-code"></i> LeetCode Profile
-                    </a>
-                    <a id="modalGitHubLink" href="#" target="_blank" rel="noopener noreferrer"
-                        class="btn-external github">
-                        <i class="fa-brands fa-github"></i> GitHub Profile
-                    </a>
-                </div>
             </div>
         </div>
     </div>
