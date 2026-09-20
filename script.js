@@ -16,7 +16,7 @@
     let combinedData = [];
     let currentFilter = "all";
     let searchQuery = "";
-    let currentSort = "total-desc";
+    let currentSort = "name-asc";
     let isFetching = false;
 
     // ---- DOM Elements ----
