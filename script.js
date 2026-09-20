@@ -752,7 +752,7 @@
     }
 
     /**
-     * 1. Calendar Heatmap and Streak Activity
+     * 1. Calendar Heatmap and Streak Activity (Full 1-Year GitHub Style)
      */
     function renderCalendarHeatmap(calendarData) {
         if (!modalCalendarHeatmap) return;
@@ -765,32 +765,112 @@
         if (modalActiveDays) modalActiveDays.textContent = activeDaysVal;
         if (modalActiveYears) modalActiveYears.textContent = activeYearsVal;
 
-        // Parse calendar timestamps
+        // Parse calendar timestamps into UTC YYYY-MM-DD map
         const submissionMap = new Map();
         if (calendarData?.submissionCalendar) {
-            const rawCal = typeof calendarData.submissionCalendar === "string" 
-                ? JSON.parse(calendarData.submissionCalendar) 
-                : calendarData.submissionCalendar;
-
-            Object.entries(rawCal).forEach(([ts, count]) => {
-                const sec = parseInt(ts, 10);
-                if (!isNaN(sec)) {
-                    const d = new Date(sec * 1000);
-                    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-                    submissionMap.set(key, (submissionMap.get(key) || 0) + Number(count));
+            let rawCal = calendarData.submissionCalendar;
+            if (typeof rawCal === "string") {
+                try {
+                    rawCal = JSON.parse(rawCal);
+                } catch (e) {
+                    rawCal = {};
                 }
-            });
+            }
+
+            if (rawCal && typeof rawCal === "object") {
+                Object.entries(rawCal).forEach(([ts, count]) => {
+                    const sec = parseInt(ts, 10);
+                    if (!isNaN(sec)) {
+                        const d = new Date(sec * 1000);
+                        const year = d.getUTCFullYear();
+                        const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+                        const day = String(d.getUTCDate()).padStart(2, "0");
+                        const key = `${year}-${month}-${day}`;
+                        submissionMap.set(key, (submissionMap.get(key) || 0) + Number(count));
+                    }
+                });
+            }
         }
 
-        // Generate the last 26 weeks (182 days) ending today
+        // Full 1 year (53 continuous weeks, 371 days) ending in current week
         modalCalendarHeatmap.innerHTML = "";
-        const today = new Date();
-        const numWeeks = 28;
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() - (numWeeks * 7));
+        const now = new Date();
+        const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0));
+        const dayOfWeek = todayUTC.getUTCDay(); // 0 = Sun, ..., 6 = Sat
+        const numWeeks = 53;
 
-        // Align to Sunday
-        startDate.setDate(startDate.getDate() - startDate.getDay());
+        // Start on Sunday 52 weeks ago
+        const startDate = new Date(todayUTC);
+        startDate.setUTCDate(todayUTC.getUTCDate() - dayOfWeek - ((numWeeks - 1) * 7));
+
+        // Build continuous month headers for all 12 months
+        const monthHeaders = [];
+        let lastMonth = -1;
+        const monthIter = new Date(startDate);
+
+        for (let w = 0; w < numWeeks; w++) {
+            for (let d = 0; d < 7; d++) {
+                const m = monthIter.getUTCMonth();
+                if (m !== lastMonth) {
+                    monthHeaders.push({
+                        weekIndex: w,
+                        name: monthIter.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
+                        month: m
+                    });
+                    lastMonth = m;
+                    break;
+                }
+                monthIter.setUTCDate(monthIter.getUTCDate() + 1);
+            }
+            monthIter.setTime(startDate.getTime() + ((w + 1) * 7 * 24 * 60 * 60 * 1000));
+        }
+
+        // Filter out initial month label if too close to the next to prevent overlap
+        const filteredMonths = monthHeaders.filter((item, idx) => {
+            if (idx < monthHeaders.length - 1) {
+                const next = monthHeaders[idx + 1];
+                if (next.weekIndex - item.weekIndex < 2) return false;
+            }
+            return true;
+        });
+
+        // Construct GitHub-style layout
+        const header = document.createElement("div");
+        header.className = "heatmap-header";
+
+        const spacer = document.createElement("div");
+        spacer.className = "heatmap-days-spacer";
+        header.appendChild(spacer);
+
+        const monthsTrack = document.createElement("div");
+        monthsTrack.className = "heatmap-months-track";
+        filteredMonths.forEach(m => {
+            const label = document.createElement("span");
+            label.className = "heatmap-month-label";
+            label.textContent = m.name;
+            label.style.left = `${m.weekIndex * 15}px`;
+            monthsTrack.appendChild(label);
+        });
+        header.appendChild(monthsTrack);
+        modalCalendarHeatmap.appendChild(header);
+
+        // Body: Day labels + 53 week columns
+        const body = document.createElement("div");
+        body.className = "heatmap-body";
+
+        const daysCol = document.createElement("div");
+        daysCol.className = "heatmap-days-col";
+        const dayNames = ["", "Mon", "", "Wed", "", "Fri", ""];
+        dayNames.forEach(name => {
+            const dayLabel = document.createElement("div");
+            dayLabel.className = "heatmap-day-label";
+            dayLabel.textContent = name;
+            daysCol.appendChild(dayLabel);
+        });
+        body.appendChild(daysCol);
+
+        const weeksGrid = document.createElement("div");
+        weeksGrid.className = "heatmap-grid";
 
         const currentIter = new Date(startDate);
         for (let w = 0; w < numWeeks; w++) {
@@ -798,40 +878,58 @@
             weekCol.className = "heatmap-week";
 
             for (let d = 0; d < 7; d++) {
-                const dateKey = `${currentIter.getUTCFullYear()}-${String(currentIter.getUTCMonth() + 1).padStart(2, '0')}-${String(currentIter.getUTCDate()).padStart(2, '0')}`;
+                const year = currentIter.getUTCFullYear();
+                const month = String(currentIter.getUTCMonth() + 1).padStart(2, "0");
+                const day = String(currentIter.getUTCDate()).padStart(2, "0");
+                const dateKey = `${year}-${month}-${day}`;
                 const count = submissionMap.get(dateKey) || 0;
-
-                let level = "lvl-0";
-                if (count >= 10) level = "lvl-4";
-                else if (count >= 6) level = "lvl-3";
-                else if (count >= 3) level = "lvl-2";
-                else if (count >= 1) level = "lvl-1";
+                const isFuture = currentIter > todayUTC;
 
                 const cell = document.createElement("div");
-                cell.className = `heatmap-cell ${level}`;
-                cell.dataset.date = currentIter.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                cell.dataset.count = count;
+                if (isFuture) {
+                    cell.className = "heatmap-cell future-cell";
+                } else {
+                    let level = "lvl-0";
+                    if (count >= 10) level = "lvl-4";
+                    else if (count >= 6) level = "lvl-3";
+                    else if (count >= 3) level = "lvl-2";
+                    else if (count >= 1) level = "lvl-1";
 
-                cell.addEventListener("mouseenter", (e) => {
-                    if (heatmapTooltip) {
-                        const target = e.target;
-                        const rect = target.getBoundingClientRect();
-                        const parentRect = modalCalendarHeatmap.parentElement.getBoundingClientRect();
-                        heatmapTooltip.textContent = `${target.dataset.count} submissions on ${target.dataset.date}`;
-                        heatmapTooltip.style.left = `${rect.left - parentRect.left + (rect.width / 2)}px`;
-                        heatmapTooltip.style.top = `${rect.top - parentRect.top - 8}px`;
-                        heatmapTooltip.hidden = false;
-                    }
-                });
+                    cell.className = `heatmap-cell ${level}`;
+                    cell.dataset.date = currentIter.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+                    cell.dataset.count = count;
 
-                cell.addEventListener("mouseleave", () => {
-                    if (heatmapTooltip) heatmapTooltip.hidden = true;
-                });
+                    cell.addEventListener("mouseenter", (e) => {
+                        if (heatmapTooltip) {
+                            const target = e.target;
+                            const rect = target.getBoundingClientRect();
+                            const card = modalCalendarHeatmap.closest(".calendar-section-card") || modalCalendarHeatmap.parentElement;
+                            const parentRect = card.getBoundingClientRect();
+                            heatmapTooltip.textContent = `${target.dataset.count} submissions on ${target.dataset.date}`;
+                            heatmapTooltip.style.left = `${rect.left - parentRect.left + (rect.width / 2)}px`;
+                            heatmapTooltip.style.top = `${rect.top - parentRect.top - 8}px`;
+                            heatmapTooltip.hidden = false;
+                        }
+                    });
+
+                    cell.addEventListener("mouseleave", () => {
+                        if (heatmapTooltip) heatmapTooltip.hidden = true;
+                    });
+                }
 
                 weekCol.appendChild(cell);
-                currentIter.setDate(currentIter.getDate() + 1);
+                currentIter.setUTCDate(currentIter.getUTCDate() + 1);
             }
-            modalCalendarHeatmap.appendChild(weekCol);
+            weeksGrid.appendChild(weekCol);
+        }
+
+        body.appendChild(weeksGrid);
+        modalCalendarHeatmap.appendChild(body);
+
+        // Scroll to recent activity on smaller screens
+        const scrollContainer = modalCalendarHeatmap.closest(".heatmap-scroll-container");
+        if (scrollContainer && scrollContainer.scrollWidth > scrollContainer.clientWidth) {
+            scrollContainer.scrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
         }
     }
 
@@ -1086,6 +1184,15 @@
                 btn.classList.add("active");
                 const pane = document.getElementById(`pane-${targetTab}`);
                 if (pane) pane.classList.add("active");
+
+                if (targetTab === "activity") {
+                    const scrollContainer = modalCalendarHeatmap?.closest(".heatmap-scroll-container");
+                    if (scrollContainer && scrollContainer.scrollWidth > scrollContainer.clientWidth) {
+                        requestAnimationFrame(() => {
+                            scrollContainer.scrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+                        });
+                    }
+                }
             });
         });
     }

@@ -1389,15 +1389,95 @@ body {
 
 .heatmap-scroll-container {
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    overflow-y: hidden;
+    padding-bottom: 0.75rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.03);
+    -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 3px;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.heatmap-wrapper {
+    display: inline-flex;
+    flex-direction: column;
+    min-width: max-content;
+    user-select: none;
+}
+
+.heatmap-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    height: 16px;
+}
+
+.heatmap-days-spacer {
+    width: 28px;
+    flex-shrink: 0;
+    margin-right: 6px;
+}
+
+.heatmap-months-track {
+    position: relative;
+    height: 16px;
+    flex-grow: 1;
+}
+
+.heatmap-month-label {
+    position: absolute;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 16px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.heatmap-body {
+    display: flex;
+    align-items: flex-start;
+}
+
+.heatmap-days-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 28px;
+    flex-shrink: 0;
+    margin-right: 6px;
+}
+
+.heatmap-day-label {
+    height: 12px;
+    font-size: 0.68rem;
+    line-height: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-align: right;
+    padding-right: 4px;
+    pointer-events: none;
 }
 
 .heatmap-grid {
     display: flex;
     gap: 3px;
-    min-width: 640px;
 }
 
 .heatmap-week {
@@ -1413,6 +1493,7 @@ body {
     background: rgba(255, 255, 255, 0.05);
     cursor: pointer;
     transition: transform 0.15s ease;
+    box-sizing: border-box;
 }
 
 .heatmap-cell:hover {
@@ -1426,6 +1507,11 @@ body {
 .heatmap-cell.lvl-2 { background: #006d32; }
 .heatmap-cell.lvl-3 { background: #26a641; }
 .heatmap-cell.lvl-4 { background: #39d353; }
+
+.heatmap-cell.future-cell {
+    visibility: hidden;
+    pointer-events: none;
+}
 
 .heatmap-tooltip {
     position: absolute;
