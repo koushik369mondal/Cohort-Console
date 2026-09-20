@@ -128,8 +128,14 @@
         setLoadingState(true);
 
         try {
-            // Step 1: Fetch local students.json
-            const res = await fetch("students.json");
+            // Step 1: Fetch local students.json with robust URL resolution
+            let res;
+            try {
+                const studentsUrl = new URL("students.json", window.location.href).href;
+                res = await fetch(studentsUrl);
+            } catch (err) {
+                res = await fetch("students.json");
+            }
             if (!res.ok) throw new Error(`HTTP error fetching students.json: ${res.status}`);
             studentsRaw = await res.json();
 
@@ -415,14 +421,27 @@
                 </div>
 
                 <div class="card-actions">
-                    <a href="${escapeHtml(data.leetcodeProfile)}" target="_blank" rel="noopener noreferrer" class="card-btn leetcode">
+                    <a href="${escapeHtml(data.leetcodeProfile)}" target="_blank" rel="noopener noreferrer" class="card-btn leetcode" title="View LeetCode Profile">
                         <i class="fa-solid fa-code"></i> LeetCode Profile
                     </a>
-                    <a href="${escapeHtml(data.githubUrl)}" target="_blank" rel="noopener noreferrer" class="card-btn github">
+                    <a href="${escapeHtml(data.githubUrl)}" target="_blank" rel="noopener noreferrer" class="card-btn github" title="View GitHub Profile">
                         <i class="fa-brands fa-github"></i> GitHub
                     </a>
+                    <button type="button" class="card-btn detail modal-trigger-btn" data-username="${escapeHtml(data.username)}" title="View Full Profile Details" aria-label="View Full Profile Details">
+                        <i class="fa-solid fa-expand fa-up-right-and-down-left-from-center" aria-hidden="true"></i>
+                    </button>
                 </div>
             `;
+
+            const errTrigger = card.querySelector(".modal-trigger-btn");
+            if (errTrigger) {
+                errTrigger.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openProfileModal(data);
+                });
+            }
+
             return card;
         }
 
@@ -499,16 +518,21 @@
                 <a href="${escapeHtml(data.githubUrl)}" target="_blank" rel="noopener noreferrer" class="card-btn github" title="View GitHub Profile">
                     <i class="fa-brands fa-github"></i> GitHub
                 </a>
-                <button class="card-btn detail modal-trigger-btn" title="View Full Profile Details">
-                    <i class="fa-solid fa-expand"></i>
+                <button type="button" class="card-btn detail modal-trigger-btn" data-username="${escapeHtml(data.username)}" title="View Full Profile Details" aria-label="View Full Profile Details">
+                    <i class="fa-solid fa-expand fa-up-right-and-down-left-from-center" aria-hidden="true"></i>
                 </button>
             </div>
         `;
 
         // Attach modal trigger listener
-        card.querySelector(".modal-trigger-btn").addEventListener("click", () => {
-            openProfileModal(data);
-        });
+        const triggerBtn = card.querySelector(".modal-trigger-btn");
+        if (triggerBtn) {
+            triggerBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openProfileModal(data);
+            });
+        }
 
         return card;
     }
@@ -574,78 +598,97 @@
     const LEETCODE_DETAIL_BASE = "https://leetcode-api-pied.vercel.app/user/";
 
     async function openProfileModal(data) {
+        if (!data) return;
         currentModalStudent = data;
         const initials = getInitials(data.name);
 
         // Header Identity
-        modalStudentName.textContent = data.name;
-        modalUsername.textContent = `@${data.username}`;
-        modalRankPill.textContent = data.ranking !== Infinity ? `#${data.ranking.toLocaleString()}` : "Unranked";
+        if (modalStudentName) modalStudentName.textContent = data.name || "Student Profile";
+        if (modalUsername) modalUsername.textContent = `@${data.username || ""}`;
+        if (modalRankPill) modalRankPill.textContent = (data.ranking && data.ranking !== Infinity) ? `#${data.ranking.toLocaleString()}` : "Unranked";
 
-        if (data.country) {
-            modalCountry.textContent = data.country;
-            modalCountryPill.hidden = false;
-        } else {
-            modalCountryPill.hidden = true;
+        if (modalCountryPill && modalCountry) {
+            if (data.country) {
+                modalCountry.textContent = data.country;
+                modalCountryPill.hidden = false;
+            } else {
+                modalCountryPill.hidden = true;
+            }
         }
 
-        if (data.school) {
-            modalSchool.textContent = data.school;
-            modalSchoolPill.hidden = false;
-        } else {
-            modalSchoolPill.hidden = true;
+        if (modalSchoolPill && modalSchool) {
+            if (data.school) {
+                modalSchool.textContent = data.school;
+                modalSchoolPill.hidden = false;
+            } else {
+                modalSchoolPill.hidden = true;
+            }
         }
 
-        if (data.bio && data.bio.trim()) {
-            modalBio.textContent = `“${data.bio.trim()}”`;
-            modalBio.hidden = false;
-        } else {
-            modalBio.hidden = true;
+        if (modalBio) {
+            if (data.bio && data.bio.trim()) {
+                modalBio.textContent = `“${data.bio.trim()}”`;
+                modalBio.hidden = false;
+            } else {
+                modalBio.hidden = true;
+            }
         }
 
-        if (data.avatar) {
-            modalAvatar.innerHTML = `<img src="${escapeHtml(data.avatar)}" alt="${escapeHtml(data.name)}" onerror="this.outerHTML='${initials}'" />`;
-        } else {
-            modalAvatar.textContent = initials;
+        if (modalAvatar) {
+            if (data.avatar) {
+                modalAvatar.innerHTML = `<img src="${escapeHtml(data.avatar)}" alt="${escapeHtml(data.name)}" onerror="this.outerHTML='${initials}'" />`;
+            } else {
+                modalAvatar.textContent = initials;
+            }
         }
 
         // Problem Breakdown
-        modalTotalSolved.textContent = data.totalSolved;
-        modalAcceptanceRate.textContent = data.acceptanceRate;
-        modalTotalSubmissionsCount.textContent = Number(data.totalSubmissions || 0).toLocaleString();
+        if (modalTotalSolved) modalTotalSolved.textContent = data.totalSolved != null ? data.totalSolved : 0;
+        if (modalAcceptanceRate) modalAcceptanceRate.textContent = data.acceptanceRate || "N/A";
+        if (modalTotalSubmissionsCount) modalTotalSubmissionsCount.textContent = Number(data.totalSubmissions || 0).toLocaleString();
 
-        modalEasyCount.textContent = data.easySolved;
-        modalMediumCount.textContent = data.mediumSolved;
-        modalHardCount.textContent = data.hardSolved;
+        if (modalEasyCount) modalEasyCount.textContent = data.easySolved != null ? data.easySolved : 0;
+        if (modalMediumCount) modalMediumCount.textContent = data.mediumSolved != null ? data.mediumSolved : 0;
+        if (modalHardCount) modalHardCount.textContent = data.hardSolved != null ? data.hardSolved : 0;
 
         // Progress bar widths
-        modalEasyBar.style.width = `${Math.min((data.easySolved / 400) * 100, 100)}%`;
-        modalMediumBar.style.width = `${Math.min((data.mediumSolved / 400) * 100, 100)}%`;
-        modalHardBar.style.width = `${Math.min((data.hardSolved / 150) * 100, 100)}%`;
+        if (modalEasyBar) modalEasyBar.style.width = `${Math.min(((data.easySolved || 0) / 400) * 100, 100)}%`;
+        if (modalMediumBar) modalMediumBar.style.width = `${Math.min(((data.mediumSolved || 0) / 400) * 100, 100)}%`;
+        if (modalHardBar) modalHardBar.style.width = `${Math.min(((data.hardSolved || 0) / 150) * 100, 100)}%`;
 
         // Metadata from students.json
-        modalId.textContent = data.student.id || "N/A";
+        if (modalId) modalId.textContent = (data.student && data.student.id) ? data.student.id : "N/A";
         if (modalDob) modalDob.textContent = data.dob || "N/A";
-        modalEmail.textContent = data.student.email || "N/A";
-        modalPhone.textContent = data.student.phoneNumber || "N/A";
+        if (modalEmail) modalEmail.textContent = (data.student && data.student.email) ? data.student.email : "N/A";
+        if (modalPhone) modalPhone.textContent = (data.student && data.student.phoneNumber) ? data.student.phoneNumber : "N/A";
 
-        modalLeetCodeLink.href = data.leetcodeProfile;
-        modalGitHubLink.href = data.githubUrl;
+        if (modalLeetCodeLink) modalLeetCodeLink.href = data.leetcodeProfile || "#";
+        if (modalGitHubLink) modalGitHubLink.href = data.githubUrl || "#";
 
         // Reset to Overview tab
-        modalTabBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === "overview"));
-        modalPanes.forEach(pane => pane.classList.toggle("active", pane.id === "pane-overview"));
+        if (modalTabBtns) modalTabBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === "overview"));
+        if (modalPanes) modalPanes.forEach(pane => pane.classList.toggle("active", pane.id === "pane-overview"));
 
-        // Open modal backdrop
-        profileModal.hidden = false;
+        // Open modal backdrop with explicit display support
+        if (profileModal) {
+            profileModal.hidden = false;
+            profileModal.removeAttribute("hidden");
+            profileModal.style.display = "flex";
+        }
         document.body.style.overflow = "hidden"; // Lock background scroll
 
         // Fetch or load from cache the detailed endpoints
-        await loadStudentDetailedData(data.username);
+        if (data.username && data.username !== "unknown") {
+            await loadStudentDetailedData(data.username);
+        }
     }
 
     function closeProfileModal() {
-        profileModal.hidden = true;
+        if (profileModal) {
+            profileModal.hidden = true;
+            profileModal.setAttribute("hidden", "");
+            profileModal.style.display = "none";
+        }
         document.body.style.overflow = "";
         currentModalStudent = null;
         if (heatmapTooltip) heatmapTooltip.hidden = true;
@@ -669,9 +712,10 @@
         if (modalSyncIndicator) modalSyncIndicator.hidden = false;
 
         const endpoints = ["contests", "submissions", "calendar", "badges", "skills"];
+        const hasTimeout = typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function";
         const promises = endpoints.map(ep =>
             fetch(`${LEETCODE_DETAIL_BASE}${encodeURIComponent(username)}/${ep}`, {
-                signal: AbortSignal.timeout(12000)
+                signal: hasTimeout ? AbortSignal.timeout(12000) : undefined
             })
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1118,9 +1162,25 @@
         });
 
         // Modal Close
-        closeModalBtn.addEventListener("click", closeProfileModal);
-        profileModal.addEventListener("click", (e) => {
-            if (e.target === profileModal) closeProfileModal();
+        if (closeModalBtn) closeModalBtn.addEventListener("click", closeProfileModal);
+        if (profileModal) {
+            profileModal.addEventListener("click", (e) => {
+                if (e.target === profileModal) closeProfileModal();
+            });
+        }
+
+        // Delegated click listener for all modal trigger / expand buttons
+        cardGrid.addEventListener("click", (e) => {
+            const triggerBtn = e.target.closest(".modal-trigger-btn");
+            if (!triggerBtn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const username = triggerBtn.dataset.username;
+            if (!username) return;
+            const studentData = combinedData.find(d => d.username === username);
+            if (studentData) {
+                openProfileModal(studentData);
+            }
         });
 
         // Keyboard Shortcuts

@@ -724,16 +724,29 @@ body {
     border-color: rgba(255, 255, 255, 0.25);
 }
 
-.card-btn.detail {
+.card-btn i {
+    pointer-events: none;
+}
+
+.card-btn.detail,
+.modal-trigger-btn {
     flex: 0 0 auto;
-    padding: 0.45rem 0.6rem;
+    padding: 0.45rem 0.65rem;
     background: rgba(56, 189, 248, 0.1);
     color: var(--cyan);
     border-color: rgba(56, 189, 248, 0.25);
+    min-width: 34px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
 }
 
-.card-btn.detail:hover {
+.card-btn.detail:hover,
+.modal-trigger-btn:hover {
     background: rgba(56, 189, 248, 0.2);
+    border-color: var(--cyan);
 }
 
 /* Error State in Card */
@@ -848,6 +861,10 @@ body {
     justify-content: center;
     padding: 1.5rem;
     animation: fadeIn 0.25s ease-out;
+}
+
+.modal-backdrop[hidden] {
+    display: none !important;
 }
 
 @keyframes fadeIn {
