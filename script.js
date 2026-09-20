@@ -651,10 +651,15 @@
         if (modalMediumCount) modalMediumCount.textContent = data.mediumSolved != null ? data.mediumSolved : 0;
         if (modalHardCount) modalHardCount.textContent = data.hardSolved != null ? data.hardSolved : 0;
 
-        // Progress bar widths
-        if (modalEasyBar) modalEasyBar.style.width = `${Math.min(((data.easySolved || 0) / 400) * 100, 100)}%`;
-        if (modalMediumBar) modalMediumBar.style.width = `${Math.min(((data.mediumSolved || 0) / 400) * 100, 100)}%`;
-        if (modalHardBar) modalHardBar.style.width = `${Math.min(((data.hardSolved || 0) / 150) * 100, 100)}%`;
+        // Progress bar widths (percentage of total solved, matching home page)
+        const total = Math.max(data.totalSolved || 0, 1);
+        const easyPct = data.totalSolved > 0 ? Math.min(((data.easySolved || 0) / total) * 100, 100).toFixed(1) : "0";
+        const medPct = data.totalSolved > 0 ? Math.min(((data.mediumSolved || 0) / total) * 100, 100).toFixed(1) : "0";
+        const hardPct = data.totalSolved > 0 ? Math.min(((data.hardSolved || 0) / total) * 100, 100).toFixed(1) : "0";
+
+        if (modalEasyBar) modalEasyBar.style.width = `${easyPct}%`;
+        if (modalMediumBar) modalMediumBar.style.width = `${medPct}%`;
+        if (modalHardBar) modalHardBar.style.width = `${hardPct}%`;
 
         // Metadata from students.json
         if (modalId) modalId.textContent = (data.student && data.student.id) ? data.student.id : "N/A";

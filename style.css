@@ -666,15 +666,19 @@ body {
     overflow: hidden;
 }
 
-.progress-fill {
+.progress-fill,
+.progress-bar {
     height: 100%;
     border-radius: var(--radius-full);
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.progress-fill.easy { background: linear-gradient(90deg, #10b981, #22c55e); }
-.progress-fill.medium { background: linear-gradient(90deg, #f59e0b, #eab308); }
-.progress-fill.hard { background: linear-gradient(90deg, #f43f5e, #ef4444); }
+.progress-fill.easy,
+.progress-bar.easy { background: linear-gradient(90deg, #10b981, #22c55e); }
+.progress-fill.medium,
+.progress-bar.medium { background: linear-gradient(90deg, #f59e0b, #eab308); }
+.progress-fill.hard,
+.progress-bar.hard { background: linear-gradient(90deg, #f43f5e, #ef4444); }
 
 /* Card Actions */
 .card-actions {
