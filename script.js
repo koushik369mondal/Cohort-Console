@@ -34,7 +34,10 @@
     // Metrics DOM
     const metricTotalStudents = document.getElementById("metricTotalStudents");
     const metricTotalSolved = document.getElementById("metricTotalSolved");
-    const metricAvgSolved = document.getElementById("metricAvgSolved");
+    const metricMeanSolved = document.getElementById("metricMeanSolved") || document.getElementById("metricAvgSolved");
+    const metricAvgSolved = metricMeanSolved;
+    const metricMedianSolved = document.getElementById("metricMedianSolved");
+    const metricModeSolved = document.getElementById("metricModeSolved");
     const metricTopPerformer = document.getElementById("metricTopPerformer");
     const countAll = document.getElementById("countAll");
 
@@ -553,15 +556,76 @@
         const totalStudents = studentsRaw.length;
 
         // 1. Total Solved across cohort
-        const totalSolvedSum = validProfiles.reduce((acc, curr) => acc + curr.totalSolved, 0);
+        const totalSolvedSum = validProfiles.reduce((acc, curr) => acc + (Number(curr.totalSolved) || 0), 0);
 
-        // 2. Average Solved
-        const avgSolved = validProfiles.length > 0 ? (totalSolvedSum / validProfiles.length).toFixed(1) : 0;
+        // Extract and sort solved counts for statistical computations
+        const solvedList = validProfiles.map(d => Number(d.totalSolved) || 0).sort((a, b) => a - b);
+        const count = solvedList.length;
+
+        // 2. Mean Solved (Arithmetic Average)
+        const meanRaw = count > 0 ? (totalSolvedSum / count) : 0;
+        const meanSolved = count > 0
+            ? (Number.isInteger(meanRaw) ? meanRaw : parseFloat(meanRaw.toFixed(1)))
+            : 0;
+
+        // 3. Median Solved (Middle value of sorted distribution)
+        let medianSolved = 0;
+        if (count > 0) {
+            if (count % 2 === 1) {
+                medianSolved = solvedList[Math.floor(count / 2)];
+            } else {
+                const mid = count / 2;
+                const midVal = (solvedList[mid - 1] + solvedList[mid]) / 2;
+                medianSolved = Number.isInteger(midVal) ? midVal : parseFloat(midVal.toFixed(1));
+            }
+        }
+
+        // 4. Mode Solved (Most frequent value in distribution)
+        let modeSolvedDisplay = 0;
+        let modeTitle = "No data";
+        if (count > 0) {
+            const freqMap = new Map();
+            let maxFreq = 0;
+            for (const val of solvedList) {
+                const f = (freqMap.get(val) || 0) + 1;
+                freqMap.set(val, f);
+                if (f > maxFreq) maxFreq = f;
+            }
+
+            const modes = [];
+            for (const [val, f] of freqMap.entries()) {
+                if (f === maxFreq) modes.push(val);
+            }
+            modes.sort((a, b) => a - b);
+
+            if (maxFreq === 1 && count > 1) {
+                modeSolvedDisplay = "N/A";
+                modeTitle = "All solved counts are unique (no repeated mode)";
+            } else if (modes.length === 1) {
+                modeSolvedDisplay = modes[0];
+                modeTitle = `Most frequent: ${modes[0]} problems solved (${maxFreq} ${maxFreq === 1 ? 'student' : 'students'})`;
+            } else if (modes.length <= 2) {
+                modeSolvedDisplay = modes.join(", ");
+                modeTitle = `Bimodal: ${modes.join(" & ")} solved (${maxFreq} students each)`;
+            } else {
+                modeSolvedDisplay = `${modes[0]}+`;
+                modeTitle = `Multimodal (${modes.length} values): ${modes.slice(0, 3).join(", ")}... (${maxFreq} students each)`;
+            }
+        }
 
         // Animate counter values
         if (metricTotalStudents) animateCounter(metricTotalStudents, totalStudents);
         if (metricTotalSolved) animateCounter(metricTotalSolved, totalSolvedSum);
-        if (metricAvgSolved) animateCounter(metricAvgSolved, avgSolved);
+        if (metricMeanSolved) animateCounter(metricMeanSolved, meanSolved);
+        if (metricMedianSolved) animateCounter(metricMedianSolved, medianSolved);
+        if (metricModeSolved) {
+            if (typeof modeSolvedDisplay === "number") {
+                animateCounter(metricModeSolved, modeSolvedDisplay);
+            } else {
+                metricModeSolved.textContent = modeSolvedDisplay;
+            }
+            metricModeSolved.title = modeTitle;
+        }
 
         if (metricTopPerformer) {
             let topStudent = validProfiles.length > 0 ? validProfiles.reduce((max, curr) => curr.totalSolved > max.totalSolved ? curr : max, validProfiles[0]) : null;
@@ -575,9 +639,19 @@
     }
 
     function animateCounter(element, targetNum) {
+        if (typeof targetNum === "string" && !/^-?\d+(\.\d+)?$/.test(targetNum.trim())) {
+            element.textContent = targetNum;
+            return;
+        }
+
         const num = parseFloat(targetNum);
         if (isNaN(num)) {
             element.textContent = targetNum;
+            return;
+        }
+
+        if (num === 0) {
+            element.textContent = "0";
             return;
         }
 

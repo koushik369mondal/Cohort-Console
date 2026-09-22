@@ -95,14 +95,40 @@
                     </div>
                 </div>
 
-                <!-- Metric 2: Average Solved -->
+                <!-- Metric 2: Mean Solved -->
                 <div class="metric-card">
                     <div class="metric-icon emerald">
-                        <i class="fa-solid fa-chart-line"></i>
+                        <i class="fa-solid fa-calculator"></i>
                     </div>
                     <div class="metric-data">
-                        <span class="metric-label">Average Solved</span>
-                        <div class="metric-value" id="metricAvgSolved">
+                        <span class="metric-label">Mean Solved</span>
+                        <div class="metric-value" id="metricMeanSolved" title="Arithmetic mean of problems solved">
+                            <span class="skeleton-text-sm">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metric 3: Median Solved -->
+                <div class="metric-card">
+                    <div class="metric-icon amber">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </div>
+                    <div class="metric-data">
+                        <span class="metric-label">Median Solved</span>
+                        <div class="metric-value" id="metricMedianSolved" title="Median (50th percentile) problems solved">
+                            <span class="skeleton-text-sm">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metric 4: Mode Solved -->
+                <div class="metric-card">
+                    <div class="metric-icon purple">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <div class="metric-data">
+                        <span class="metric-label">Mode Solved</span>
+                        <div class="metric-value" id="metricModeSolved" title="Most frequent problems solved count">
                             <span class="skeleton-text-sm">--</span>
                         </div>
                     </div>
