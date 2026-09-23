@@ -29,9 +29,20 @@
             title: "2023–27 B-Tech",
             subtitle: "Student Cohort",
             studentCount: 28,
-            studentsFile: "students.json",
+            studentsFile: "b-tech-2023-27.json",
             department: "Computer Science & Engineering",
             academicYears: "2023 – 2027",
+            status: "active",
+            description: "Active B-Tech cohort tracking live LeetCode competitive programming progress, contest ratings, and submission history."
+        },
+        {
+            id: "2024-28",
+            title: "2024–28 B-Tech",
+            subtitle: "Student Cohort",
+            studentCount: 153,
+            studentsFile: "b-tech-2024-28.json",
+            department: "Computer Science & Engineering",
+            academicYears: "2024 – 2028",
             status: "active",
             description: "Active B-Tech cohort tracking live LeetCode competitive programming progress, contest ratings, and submission history."
         }
@@ -333,7 +344,7 @@
         isFetching = true;
         setLoadingState(true);
 
-        const targetFile = (cohort && cohort.studentsFile) ? cohort.studentsFile : "students.json";
+        const targetFile = (cohort && cohort.studentsFile) ? cohort.studentsFile : "b-tech-2023-27.json";
 
         try {
             // Step 1: Fetch cohort student data
