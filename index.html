@@ -32,20 +32,25 @@
             <div class="header-content">
                 <!-- Brand & Logo -->
                 <div class="brand">
+                    <button id="backToCohortsBtn" class="btn-back" title="Back to Cohorts" aria-label="Back to Cohorts" hidden style="display: none;">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Cohorts</span>
+                    </button>
                     <div class="brand-logo" aria-hidden="true">
                         <i class="fa-solid fa-code"></i>
                     </div>
                     <div class="brand-info">
                         <div class="brand-title">
                             <span class="highlight">Cohort</span> Console
+                            <span id="activeCohortPill" class="cohort-current-pill" hidden style="display: none;">2023–27 B-Tech</span>
                             <span class="live-tag"><span class="pulse-dot"></span> LIVE API</span>
                         </div>
-                        <p class="brand-subtitle">Student Cohort Performance Dashboard</p>
+                        <p class="brand-subtitle" id="brandSubtitle">Student Cohort Performance Dashboard</p>
                     </div>
                 </div>
 
-                <!-- Controls: Search & Sort & Refresh -->
-                <div class="controls-wrapper">
+                <!-- Controls: Search & Sort & Refresh (Active inside cohort dashboard) -->
+                <div class="controls-wrapper" id="headerControls" hidden style="display: none;">
                     <!-- Search Bar -->
                     <div class="search-container">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -79,92 +84,115 @@
             </div>
         </header>
 
-        <!-- ============ DASHBOARD METRICS SUMMARY ============ -->
-        <section class="metrics-section">
-            <div class="metrics-grid">
-                <!-- Metric 1: Total Students -->
-                <div class="metric-card">
-                    <div class="metric-icon cyan">
-                        <i class="fa-solid fa-users"></i>
-                    </div>
-                    <div class="metric-data">
-                        <span class="metric-label">Total Students</span>
-                        <div class="metric-value" id="metricTotalStudents">
-                            <span class="skeleton-text-sm">--</span>
-                        </div>
-                    </div>
+        <!-- ============ COHORT SELECTOR / HOMEPAGE ============ -->
+        <section id="cohortsView" class="cohorts-view">
+            <div class="cohorts-hero">
+                <div class="cohorts-hero-badge">
+                    <i class="fa-solid fa-graduation-cap"></i> Academic Directory
                 </div>
+                <h1 class="cohorts-hero-title">
+                    Select a <span class="highlight-cyan">Student Cohort</span>
+                </h1>
+                <p class="cohorts-hero-subtitle">
+                    Monitor live LeetCode progression, algorithmic problem-solving milestones, contest ratings, and cohort performance analytics.
+                </p>
+            </div>
 
-                <!-- Metric 2: Mean Solved -->
-                <div class="metric-card">
-                    <div class="metric-icon emerald">
-                        <i class="fa-solid fa-calculator"></i>
-                    </div>
-                    <div class="metric-data">
-                        <span class="metric-label">Mean Solved</span>
-                        <div class="metric-value" id="metricMeanSolved" title="Arithmetic mean of problems solved">
-                            <span class="skeleton-text-sm">--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Metric 3: Median Solved -->
-                <div class="metric-card">
-                    <div class="metric-icon amber">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                    </div>
-                    <div class="metric-data">
-                        <span class="metric-label">Median Solved</span>
-                        <div class="metric-value" id="metricMedianSolved" title="Median (50th percentile) problems solved">
-                            <span class="skeleton-text-sm">--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Metric 4: Mode Solved -->
-                <div class="metric-card">
-                    <div class="metric-icon purple">
-                        <i class="fa-solid fa-chart-pie"></i>
-                    </div>
-                    <div class="metric-data">
-                        <span class="metric-label">Mode Solved</span>
-                        <div class="metric-value" id="metricModeSolved" title="Most frequent problems solved count">
-                            <span class="skeleton-text-sm">--</span>
-                        </div>
-                    </div>
-                </div>
+            <!-- Dynamic Cohort Cards Container -->
+            <div class="cohorts-grid" id="cohortsGrid">
+                <!-- Dynamically populated from cohorts config -->
             </div>
         </section>
 
-        <!-- ============ FILTER TABS & COUNTER ============ -->
-        <div class="filter-strip">
-            <div class="filter-tabs">
-                <button class="tab-btn active" data-filter="all">All Coders (<span id="countAll">0</span>)</button>
-                <button class="tab-btn" data-filter="top10">Top 10 Rankers</button>
-                <button class="tab-btn" data-filter="active">Active (&gt;50 Solved)</button>
-                <button class="tab-btn" data-filter="hard">Hard Masters (&gt;0 Hard)</button>
+        <!-- ============ DASHBOARD VIEW (SELECTED COHORT DETAIL) ============ -->
+        <div id="dashboardView" class="dashboard-view" hidden style="display: none;">
+            <!-- ============ DASHBOARD METRICS SUMMARY ============ -->
+            <section class="metrics-section">
+                <div class="metrics-grid">
+                    <!-- Metric 1: Total Students -->
+                    <div class="metric-card">
+                        <div class="metric-icon cyan">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="metric-data">
+                            <span class="metric-label">Total Students</span>
+                            <div class="metric-value" id="metricTotalStudents">
+                                <span class="skeleton-text-sm">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metric 2: Mean Solved -->
+                    <div class="metric-card">
+                        <div class="metric-icon emerald">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <div class="metric-data">
+                            <span class="metric-label">Mean Solved</span>
+                            <div class="metric-value" id="metricMeanSolved" title="Arithmetic mean of problems solved">
+                                <span class="skeleton-text-sm">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metric 3: Median Solved -->
+                    <div class="metric-card">
+                        <div class="metric-icon amber">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                        <div class="metric-data">
+                            <span class="metric-label">Median Solved</span>
+                            <div class="metric-value" id="metricMedianSolved" title="Median (50th percentile) problems solved">
+                                <span class="skeleton-text-sm">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metric 4: Mode Solved -->
+                    <div class="metric-card">
+                        <div class="metric-icon purple">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <div class="metric-data">
+                            <span class="metric-label">Mode Solved</span>
+                            <div class="metric-value" id="metricModeSolved" title="Most frequent problems solved count">
+                                <span class="skeleton-text-sm">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ FILTER TABS & COUNTER ============ -->
+            <div class="filter-strip">
+                <div class="filter-tabs">
+                    <button class="tab-btn active" data-filter="all">All Coders (<span id="countAll">0</span>)</button>
+                    <button class="tab-btn" data-filter="top10">Top 10 Rankers</button>
+                    <button class="tab-btn" data-filter="active">Active (&gt;50 Solved)</button>
+                    <button class="tab-btn" data-filter="hard">Hard Masters (&gt;0 Hard)</button>
+                </div>
+                <div class="update-timestamp" id="lastUpdatedTag">
+                    <i class="fa-regular fa-clock"></i> <span id="lastUpdatedText">Loading live stats...</span>
+                </div>
             </div>
-            <div class="update-timestamp" id="lastUpdatedTag">
-                <i class="fa-regular fa-clock"></i> <span id="lastUpdatedText">Loading live stats...</span>
-            </div>
+
+            <!-- ============ MAIN CONTENT & GRID ============ -->
+            <main class="main-content">
+                <!-- Card Grid -->
+                <div id="cardGrid" class="card-grid" aria-live="polite">
+                    <!-- Dynamically populated or skeleton loader -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state" hidden>
+                    <div class="empty-icon"><i class="fa-solid fa-magnifying-glass-slash"></i></div>
+                    <h3>No Developers Found</h3>
+                    <p>No student profile matched "<span id="emptyQueryText"></span>". Try searching for another name or
+                        username.</p>
+                    <button id="resetSearchBtn" class="btn-secondary">Reset Search Filter</button>
+                </div>
+            </main>
         </div>
-
-        <!-- ============ MAIN CONTENT & GRID ============ -->
-        <main class="main-content">
-            <!-- Card Grid -->
-            <div id="cardGrid" class="card-grid" aria-live="polite">
-                <!-- Dynamically populated or skeleton loader -->
-            </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="empty-state" hidden>
-                <div class="empty-icon"><i class="fa-solid fa-magnifying-glass-slash"></i></div>
-                <h3>No Developers Found</h3>
-                <p>No student profile matched "<span id="emptyQueryText"></span>". Try searching for another name or
-                    username.</p>
-                <button id="resetSearchBtn" class="btn-secondary">Reset Search Filter</button>
-            </div>
-        </main>
 
         <!-- ============ FOOTER ============ -->
         <footer class="footer">
@@ -514,6 +542,7 @@
         </div>
     </div>
 
+    <script src="cohorts.js"></script>
     <script src="script.js"></script>
 </body>
 

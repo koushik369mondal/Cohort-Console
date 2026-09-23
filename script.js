@@ -19,7 +19,35 @@
     let currentSort = "name-asc";
     let isFetching = false;
 
+    // ---- Cohorts State & Config ----
+    let currentCohort = null;
+    let currentCohortId = null;
+
+    const defaultCohorts = [
+        {
+            id: "2023-27",
+            title: "2023–27 B-Tech",
+            subtitle: "Student Cohort",
+            studentCount: 28,
+            studentsFile: "students.json",
+            department: "Computer Science & Engineering",
+            academicYears: "2023 – 2027",
+            status: "active",
+            description: "Active B-Tech cohort tracking live LeetCode competitive programming progress, contest ratings, and submission history."
+        }
+    ];
+
+    const getCohorts = () => window.COHORTS_CONFIG || window.cohorts || defaultCohorts;
+
     // ---- DOM Elements ----
+    const cohortsView = document.getElementById("cohortsView");
+    const dashboardView = document.getElementById("dashboardView");
+    const cohortsGrid = document.getElementById("cohortsGrid");
+    const backToCohortsBtn = document.getElementById("backToCohortsBtn");
+    const activeCohortPill = document.getElementById("activeCohortPill");
+    const brandSubtitle = document.getElementById("brandSubtitle");
+    const headerControls = document.getElementById("headerControls");
+
     const cardGrid = document.getElementById("cardGrid");
     const searchInput = document.getElementById("searchInput");
     const clearSearchBtn = document.getElementById("clearSearchBtn");
@@ -117,39 +145,212 @@
     const tabBtns = document.querySelectorAll(".tab-btn");
 
     // ==========================================================================
-    // INITIALIZATION & DATA FETCHING
+    // INITIALIZATION, ROUTING & DATA FETCHING
     // ==========================================================================
 
     async function init() {
         setupEventListeners();
         setupModalTabs();
-        renderSkeletons(12);
-        await loadDashboardData();
+        renderCohortsPage();
+
+        // Listen to URL hash and history state changes
+        window.addEventListener("hashchange", handleRouting);
+        window.addEventListener("popstate", handleRouting);
+
+        // Handle initial navigation based on URL
+        await handleRouting();
+    }
+
+    /**
+     * Render the Cohort Cards on the Homepage
+     */
+    function renderCohortsPage() {
+        if (!cohortsGrid) return;
+        const list = getCohorts();
+        cohortsGrid.innerHTML = list.map(cohort => {
+            const isActive = cohort.status !== "upcoming";
+            const studentCount = cohort.studentCount || (cohort.id === "2023-27" ? 28 : 0);
+            return `
+                <div class="cohort-card" data-cohort-id="${escapeHtml(cohort.id)}" role="button" tabindex="0" aria-label="Select ${escapeHtml(cohort.title)}">
+                    <div class="cohort-card-header">
+                        <div class="cohort-icon-box" aria-hidden="true">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <span class="cohort-status-badge ${isActive ? 'active' : 'upcoming'}">
+                            ${isActive ? '<span class="pulse-dot"></span> Active' : '<i class="fa-regular fa-clock"></i> Upcoming'}
+                        </span>
+                    </div>
+                    <div class="cohort-card-body">
+                        <h2 class="cohort-card-title">${escapeHtml(cohort.title)}</h2>
+                        <p class="cohort-card-subtitle">${escapeHtml(cohort.subtitle || "Student Cohort")}</p>
+                        <p class="cohort-card-desc">${escapeHtml(cohort.description || cohort.department || "Academic Student Cohort")}</p>
+                    </div>
+                    <div class="cohort-card-footer">
+                        <div class="cohort-student-stat">
+                            <i class="fa-solid fa-users"></i>
+                            <span class="cohort-count-number">${studentCount}</span> Students
+                        </div>
+                        <button class="btn-view-cohort" data-cohort-id="${escapeHtml(cohort.id)}" aria-label="View cohort ${escapeHtml(cohort.title)}">
+                            <span>View Cohort</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    /**
+     * Parse Cohort ID from URL (hash or query param)
+     */
+    function getCohortIdFromUrl() {
+        const hash = window.location.hash || "";
+        const hashMatch = hash.match(/cohort[=/]([a-zA-Z0-9_\-]+)/i) || hash.match(/^#([a-zA-Z0-9_\-]+)$/);
+        if (hashMatch && hashMatch[1] && hashMatch[1] !== "/" && hashMatch[1] !== "cohorts") {
+            return decodeURIComponent(hashMatch[1]);
+        }
+
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramId = urlParams.get("cohort");
+            if (paramId) return paramId;
+        } catch (e) {
+            // ignore
+        }
+
+        return null;
+    }
+
+    /**
+     * Handle routing between Cohort Selection Homepage and Student Dashboard
+     */
+    async function handleRouting() {
+        const cohortId = getCohortIdFromUrl();
+        const list = getCohorts();
+
+        if (cohortId) {
+            const found = list.find(c => c.id === cohortId);
+            if (found) {
+                await openCohortDashboard(found);
+                return;
+            }
+        }
+
+        // Default or invalid: show cohorts landing homepage
+        showCohortsPage();
+    }
+
+    /**
+     * Display the Homepage / Cohort Selector
+     */
+    function showCohortsPage() {
+        currentCohortId = null;
+        if (cohortsView) {
+            cohortsView.style.display = "block";
+            cohortsView.hidden = false;
+        }
+        if (dashboardView) {
+            dashboardView.style.display = "none";
+            dashboardView.hidden = true;
+        }
+        if (backToCohortsBtn) {
+            backToCohortsBtn.style.display = "none";
+            backToCohortsBtn.hidden = true;
+        }
+        if (activeCohortPill) {
+            activeCohortPill.style.display = "none";
+            activeCohortPill.hidden = true;
+        }
+        if (headerControls) {
+            headerControls.style.display = "none";
+            headerControls.hidden = true;
+        }
+        if (brandSubtitle) {
+            brandSubtitle.textContent = "Student Cohort Performance Dashboard";
+        }
+        document.title = "Cohort Console — Developer Dashboard";
+        closeProfileModal();
+    }
+
+    /**
+     * Display the Student Dashboard for a specific cohort
+     */
+    async function openCohortDashboard(cohort) {
+        if (cohortsView) {
+            cohortsView.style.display = "none";
+            cohortsView.hidden = true;
+        }
+        if (dashboardView) {
+            dashboardView.style.display = "block";
+            dashboardView.hidden = false;
+        }
+        if (backToCohortsBtn) {
+            backToCohortsBtn.style.display = "inline-flex";
+            backToCohortsBtn.hidden = false;
+        }
+        if (activeCohortPill) {
+            activeCohortPill.style.display = "inline-flex";
+            activeCohortPill.hidden = false;
+            activeCohortPill.textContent = cohort.title;
+        }
+        if (headerControls) {
+            headerControls.style.display = "flex";
+            headerControls.hidden = false;
+        }
+        if (brandSubtitle) {
+            brandSubtitle.textContent = `${cohort.title} • Performance Dashboard`;
+        }
+        document.title = `${cohort.title} — Cohort Console`;
+
+        // If switching cohort or first time loading this cohort
+        if (currentCohortId !== cohort.id) {
+            currentCohort = cohort;
+            currentCohortId = cohort.id;
+
+            // Reset filters & state
+            currentFilter = "all";
+            searchQuery = "";
+            if (searchInput) searchInput.value = "";
+            if (clearSearchBtn) clearSearchBtn.hidden = true;
+            tabBtns.forEach(b => b.classList.toggle("active", b.dataset.filter === "all"));
+
+            combinedData = [];
+            studentsRaw = [];
+            detailCache.clear();
+
+            renderSkeletons(cohort.studentCount || 12);
+            await loadDashboardData(cohort);
+        }
     }
 
     /**
      * Main Data Loading Pipeline:
-     * 1. Fetch local students.json
+     * 1. Fetch cohort's students JSON file
      * 2. Parallel fetch live LeetCode stats per student using Promise.allSettled
      */
-    async function loadDashboardData() {
+    async function loadDashboardData(cohort = currentCohort) {
         if (isFetching) return;
         isFetching = true;
         setLoadingState(true);
 
+        const targetFile = (cohort && cohort.studentsFile) ? cohort.studentsFile : "students.json";
+
         try {
-            // Step 1: Fetch local students.json with robust URL resolution
+            // Step 1: Fetch cohort student data
             let res;
             try {
-                const studentsUrl = new URL("students.json", window.location.href).href;
+                const studentsUrl = new URL(targetFile, window.location.href).href;
                 res = await fetch(studentsUrl);
             } catch (err) {
-                res = await fetch("students.json");
+                res = await fetch(targetFile);
             }
-            if (!res.ok) throw new Error(`HTTP error fetching students.json: ${res.status}`);
+            if (!res.ok) throw new Error(`HTTP error fetching ${targetFile}: ${res.status}`);
             studentsRaw = await res.json();
 
             countAll.textContent = studentsRaw.length;
+            if (cohort) {
+                cohort.studentCount = studentsRaw.length;
+            }
 
             // Render matching number of skeletons if initial load
             if (combinedData.length === 0) {
@@ -1557,9 +1758,38 @@
         refreshBtn.addEventListener("click", async () => {
             refreshIcon.classList.add("spinning");
             detailCache.clear(); // Invalidate detail cache on explicit sync
-            await loadDashboardData();
+            await loadDashboardData(currentCohort);
             setTimeout(() => refreshIcon.classList.remove("spinning"), 600);
         });
+
+        // Cohort Selection Clicks
+        if (cohortsGrid) {
+            cohortsGrid.addEventListener("click", (e) => {
+                const cardOrBtn = e.target.closest(".cohort-card, .btn-view-cohort");
+                if (!cardOrBtn) return;
+                const cohortId = cardOrBtn.dataset.cohortId || cardOrBtn.closest(".cohort-card")?.dataset.cohortId;
+                if (cohortId) {
+                    window.location.hash = `cohort=${encodeURIComponent(cohortId)}`;
+                }
+            });
+
+            cohortsGrid.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    const card = e.target.closest(".cohort-card");
+                    if (card && card.dataset.cohortId) {
+                        e.preventDefault();
+                        window.location.hash = `cohort=${encodeURIComponent(card.dataset.cohortId)}`;
+                    }
+                }
+            });
+        }
+
+        // Back to Cohorts Button
+        if (backToCohortsBtn) {
+            backToCohortsBtn.addEventListener("click", () => {
+                window.location.hash = "";
+            });
+        }
 
         // Modal Close
         if (closeModalBtn) closeModalBtn.addEventListener("click", closeProfileModal);
