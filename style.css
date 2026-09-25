@@ -459,6 +459,12 @@ body {
     overflow: hidden;
     transition: var(--transition-normal);
     box-shadow: var(--shadow-sm);
+    cursor: pointer;
+}
+
+.dev-card:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
 }
 
 .dev-card::before {

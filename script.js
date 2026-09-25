@@ -615,6 +615,10 @@
     function createProfileCard(data) {
         const card = document.createElement("div");
         card.className = "dev-card";
+        card.dataset.username = data.username || "";
+        card.setAttribute("tabindex", "0");
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `View ${data.name || data.username} profile details`);
 
         const initials = getInitials(data.name);
         const rankFormatted = data.ranking && data.ranking !== Infinity ? `#${data.ranking.toLocaleString()}` : "Unranked";
@@ -649,20 +653,8 @@
                     <a href="${escapeHtml(data.githubUrl)}" target="_blank" rel="noopener noreferrer" class="card-btn github" title="View GitHub Profile">
                         <i class="fa-brands fa-github"></i> GitHub
                     </a>
-                    <button type="button" class="card-btn detail modal-trigger-btn" data-username="${escapeHtml(data.username)}" title="View Full Profile Details" aria-label="View Full Profile Details">
-                        <i class="fa-solid fa-expand fa-up-right-and-down-left-from-center" aria-hidden="true"></i>
-                    </button>
                 </div>
             `;
-
-            const errTrigger = card.querySelector(".modal-trigger-btn");
-            if (errTrigger) {
-                errTrigger.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openProfileModal(data);
-                });
-            }
 
             return card;
         }
@@ -740,21 +732,8 @@
                 <a href="${escapeHtml(data.githubUrl)}" target="_blank" rel="noopener noreferrer" class="card-btn github" title="View GitHub Profile">
                     <i class="fa-brands fa-github"></i> GitHub
                 </a>
-                <button type="button" class="card-btn detail modal-trigger-btn" data-username="${escapeHtml(data.username)}" title="View Full Profile Details" aria-label="View Full Profile Details">
-                    <i class="fa-solid fa-expand fa-up-right-and-down-left-from-center" aria-hidden="true"></i>
-                </button>
             </div>
         `;
-
-        // Attach modal trigger listener
-        const triggerBtn = card.querySelector(".modal-trigger-btn");
-        if (triggerBtn) {
-            triggerBtn.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openProfileModal(data);
-            });
-        }
 
         return card;
     }
@@ -1810,17 +1789,36 @@
             });
         }
 
-        // Delegated click listener for all modal trigger / expand buttons
+        // Delegated click listener to open profile modal when clicking anywhere on a dev-card
         cardGrid.addEventListener("click", (e) => {
-            const triggerBtn = e.target.closest(".modal-trigger-btn");
-            if (!triggerBtn) return;
-            e.preventDefault();
-            e.stopPropagation();
-            const username = triggerBtn.dataset.username;
+            // Ignore clicks on external action links (LeetCode / GitHub)
+            if (e.target.closest("a")) return;
+
+            const card = e.target.closest(".dev-card");
+            if (!card) return;
+
+            const username = card.dataset.username;
             if (!username) return;
+
             const studentData = combinedData.find(d => d.username === username);
             if (studentData) {
                 openProfileModal(studentData);
+            }
+        });
+
+        // Accessibility: Allow opening modal with Enter or Space key when card is focused
+        cardGrid.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                if (e.target.closest("a")) return;
+                const card = e.target.closest(".dev-card");
+                if (!card) return;
+                e.preventDefault();
+                const username = card.dataset.username;
+                if (!username) return;
+                const studentData = combinedData.find(d => d.username === username);
+                if (studentData) {
+                    openProfileModal(studentData);
+                }
             }
         });
 
